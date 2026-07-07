@@ -37,6 +37,11 @@ tr:nth-child(1) td{font-weight:800;color:var(--blue)}
 #panel{display:none}
 label{font-weight:700;font-size:14px;display:block;margin:10px 0 6px}
 .muted{color:var(--slate);font-size:13px;line-height:1.5}
+.radio-row{display:flex;gap:10px;align-items:flex-start;font-weight:400;background:var(--bg);
+  border:2px solid var(--line);border-radius:12px;padding:10px 14px;margin:6px 0;cursor:pointer;max-width:640px}
+.radio-row input{margin-top:4px;accent-color:var(--blue);transform:scale(1.25)}
+.radio-row span{font-size:14px;line-height:1.5}
+.radio-row:has(input:checked){border-color:var(--blue);background:var(--sky)}
 </style>
 </head>
 <body>
@@ -70,13 +75,20 @@ label{font-weight:700;font-size:14px;display:block;margin:10px 0 6px}
   </div>
 
   <div class="card">
-    <h2>📱 QR Code ของงาน (แสดงตอนจบเกม)</h2>
-    <p class="muted">อัปโหลดไฟล์ QR ของงานบน platform carbonMICE ได้ทั้ง <b>PDF / PNG / JPG</b> — ถ้าเป็น PDF ระบบจะดึงหน้าแรกมาแปลงเป็นภาพให้อัตโนมัติ</p>
-    <label>เลือกไฟล์</label>
+    <h2>📱 QR Code + ลิงก์ปลายทาง (แสดงตอนจบเกม)</h2>
+    <label>ปลายทางของ QR / ลิงก์ คืออะไร?</label>
+    <label class="radio-row"><input type="radio" name="qr-mode" value="travel" checked>
+      <span><b>ฟอร์มกรอกข้อมูลการเดินทาง</b> (platform carbonMICE) — หน้าจบเกมจะชวนผู้เล่นกรอกข้อมูลเดินทางของงาน</span></label>
+    <label class="radio-row"><input type="radio" name="qr-mode" value="web">
+      <span><b>เว็บไซต์อื่น</b> เช่น Facebook / Landing page — หน้าจบเกมจะชวนผู้เล่นไปที่ลิงก์ปลายทาง</span></label>
+
+    <label>ลิงก์ปลายทาง (URL สำหรับปุ่มกดบนหน้าจบเกม)</label>
+    <input type="text" id="qr-link" placeholder="https://... (เว้นว่างได้ ถ้าอยากให้สแกน QR อย่างเดียว)" style="max-width:560px">
+
+    <label style="margin-top:14px">ไฟล์ QR — รับทั้ง <b>PDF / PNG / JPG</b> (PDF จะถูกดึงหน้าแรกมาแปลงเป็นภาพอัตโนมัติ)</label>
     <input type="file" id="qr-file" accept=".pdf,.png,.jpg,.jpeg" onchange="handleQRFile(this.files[0])">
-    <div id="qr-preview"><img id="qr-img" alt="QR preview"><br>
-      <button class="btn btn-mint" onclick="saveQR()">💾 บันทึก QR ขึ้นระบบ</button>
-    </div>
+    <div id="qr-preview"><img id="qr-img" alt="QR preview"></div>
+    <br><button class="btn btn-mint" onclick="saveQRDest()">💾 บันทึกปลายทาง + QR ขึ้นระบบ</button>
     <div class="status" id="qr-status"></div>
   </div>
 
@@ -216,20 +228,38 @@ function shrink(canvas,maxW){
   c.getContext('2d').drawImage(canvas,0,0,c.width,c.height);
   return c.toDataURL('image/png');
 }
-async function saveQR(){
-  const st=$('qr-status');st.textContent='กำลังอัปโหลด…';st.className='status';
-  localStorage.setItem('cmice_game_qr',qrDataURL); // ให้เครื่องนี้ใช้ได้ทันทีแม้ออฟไลน์
+async function saveQRDest(){
+  const st=$('qr-status');st.textContent='กำลังบันทึก…';st.className='status';
+  const mode=document.querySelector('input[name="qr-mode"]:checked').value;
+  const link=$('qr-link').value.trim();
+  if(link&&!/^https?:\/\//i.test(link)){st.textContent='ลิงก์ต้องขึ้นต้นด้วย http:// หรือ https://';st.className='status err';return;}
+  // cache ในเครื่องนี้ก่อน ใช้ได้ทันทีแม้ออฟไลน์
+  localStorage.setItem('cmice_game_qrmode',mode);
+  localStorage.setItem('cmice_game_qrlink',link);
+  if(qrDataURL) localStorage.setItem('cmice_game_qr',qrDataURL);
   try{
-    const r=await api('saveQR',{qr:qrDataURL});
-    if(r.ok){st.textContent='✅ บันทึกขึ้นระบบแล้ว — ทุกเครื่องจะได้ QR ใหม่';st.className='status ok';}
-    else throw new Error(r.error||'save failed');
+    const r=await api('saveConfig',{qrMode:mode,qrLink:link});
+    if(!r.ok) throw new Error(r.error||'save config failed');
+    if(qrDataURL){
+      const r2=await api('saveQR',{qr:qrDataURL});
+      if(!r2.ok) throw new Error(r2.error||'save qr failed');
+    }
+    st.textContent='✅ บันทึกขึ้นระบบแล้ว — ทุกเครื่องจะได้ปลายทาง'+(qrDataURL?' + QR ใหม่':'')+' (โหมด: '+(mode==='web'?'เว็บไซต์อื่น':'ฟอร์มเดินทาง')+')';
+    st.className='status ok';
   }catch(e){st.textContent='บันทึกในเครื่องนี้แล้ว แต่ขึ้นเซิร์ฟเวอร์ไม่ได้: '+e.message;st.className='status err';}
 }
 
 /* ── config ── */
 async function loadConfig(){
-  try{const r=await apiGet({action:'config'});if(r.eventName)$('event-name').value=r.eventName;}
-  catch(e){$('event-name').value=localStorage.getItem('cmice_game_event')||CFG.EVENT_NAME||'';}
+  let cfg={};
+  try{cfg=await apiGet({action:'config'});}
+  catch(e){cfg={eventName:localStorage.getItem('cmice_game_event')||CFG.EVENT_NAME||'',
+    qrMode:localStorage.getItem('cmice_game_qrmode')||'travel',
+    qrLink:localStorage.getItem('cmice_game_qrlink')||''};}
+  if(cfg.eventName)$('event-name').value=cfg.eventName;
+  const mode=cfg.qrMode==='web'?'web':'travel';
+  document.querySelector('input[name="qr-mode"][value="'+mode+'"]').checked=true;
+  $('qr-link').value=cfg.qrLink||'';
 }
 async function saveEventName(){
   const name=$('event-name').value.trim();const st=$('cfg-status');

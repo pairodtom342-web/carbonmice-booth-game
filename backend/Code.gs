@@ -27,7 +27,11 @@ function doGet(e) {
       });
     }
     if (action === 'qr') return json({ qr: readQR() });
-    if (action === 'config') return json({ eventName: getProp('eventName') || '' });
+    if (action === 'config') return json({
+      eventName: getProp('eventName') || '',
+      qrMode: getProp('qrMode') || 'travel',   // travel = ฟอร์มเดินทาง carbonMICE · web = เว็บอื่น (FB/landing)
+      qrLink: getProp('qrLink') || ''
+    });
     return json({ error: 'unknown action' });
   } catch (err) {
     return json({ error: String(err) });
@@ -42,7 +46,12 @@ function doPost(e) {
   try {
     if (action === 'submitScore') return json(submitScore(body));
     if (action === 'saveQR')      return json(saveQR(body));
-    if (action === 'saveConfig')  { setProp('eventName', String(body.eventName || '')); return json({ ok: true }); }
+    if (action === 'saveConfig') {
+      ['eventName', 'qrMode', 'qrLink'].forEach(function (k) {
+        if (body[k] !== undefined) setProp(k, String(body[k]));
+      });
+      return json({ ok: true });
+    }
     if (action === 'clearScores') return json(clearScores(body));
     return json({ error: 'unknown action' });
   } catch (err) {
