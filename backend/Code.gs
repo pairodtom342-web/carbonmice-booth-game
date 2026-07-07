@@ -99,7 +99,17 @@ function readQR() {
 /* ───────── helpers ───────── */
 
 function sheet() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  // ใช้ได้ทั้งแบบผูกกับชีต (bound) และแบบ standalone (สร้างชีตให้เองอัตโนมัติ)
+  let ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (!ss) {
+    const id = getProp('SPREADSHEET_ID');
+    if (id) {
+      ss = SpreadsheetApp.openById(id);
+    } else {
+      ss = SpreadsheetApp.create('carbonMICE Game Scores');
+      setProp('SPREADSHEET_ID', ss.getId());
+    }
+  }
   let sh = ss.getSheetByName(SHEET_NAME);
   if (!sh) {
     sh = ss.insertSheet(SHEET_NAME);

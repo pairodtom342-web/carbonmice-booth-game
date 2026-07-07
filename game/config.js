@@ -2,7 +2,7 @@
 // วาง URL ของ Google Apps Script Web App หลัง deploy (ดู backend/SETUP_GOOGLE.md)
 // ปล่อยว่าง "" = โหมดออฟไลน์ (คะแนนเก็บใน localStorage ของเครื่องนี้เท่านั้น)
 window.GAME_CONFIG = {
-  API_URL: "",
+  API_URL: "https://script.google.com/macros/s/AKfycbyOenUQEMLmmJTj1_HVPUMfOBu007LSJpSrVKonvMgeBrm4uQGh6zInsHKlUtZntdBC/exec",
 
   // PIN เข้าหน้า admin.html
   ADMIN_PIN: "2468",
