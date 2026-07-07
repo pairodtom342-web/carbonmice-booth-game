@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>carbonMICE Game — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+:root{--blue:#065DED;--mint:#35E5C0;--navy:#1A1A2E;--deep-mint:#0FAE8E;--slate:#8A94A6;--bg:#F4F7FB;--sky:#EAF2FF;--mist:#E8FFF9;--line:#EAEEF5}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Sarabun','Inter',sans-serif;background:var(--bg);color:var(--navy);padding:24px;max-width:900px;margin:0 auto}
+h1{font-size:26px;font-weight:800;margin-bottom:4px}
+h1 span{color:var(--blue)}
+.sub{color:var(--slate);margin-bottom:22px}
+.card{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 6px 22px rgba(20,30,60,.06);padding:22px;margin-bottom:18px}
+.card h2{font-size:18px;font-weight:800;margin-bottom:12px;color:var(--blue)}
+.btn{border:none;border-radius:12px;font-family:inherit;font-weight:700;cursor:pointer;padding:10px 20px;font-size:15px;margin-right:8px;margin-top:6px}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-mint{background:var(--mint);color:var(--navy)}
+.btn-danger{background:#fff;color:#E0684B;border:2px solid #F4C7BC}
+.btn-ghost{background:#fff;color:var(--blue);border:2px solid var(--sky)}
+input[type=text],input[type=password]{border:2px solid var(--line);border-radius:12px;padding:10px 14px;font-family:inherit;font-size:15px;width:100%;max-width:340px;outline:none}
+input:focus{border-color:var(--blue)}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th{background:var(--sky);color:var(--blue);font-weight:800;padding:9px 12px;text-align:left;border-bottom:2px solid var(--line)}
+td{padding:8px 12px;border-bottom:1px solid var(--line)}
+td.num,th.num{text-align:right;font-family:'Inter',sans-serif}
+tr:nth-child(1) td{font-weight:800;color:var(--blue)}
+.status{font-size:14px;color:var(--slate);margin-top:8px;min-height:20px}
+.status.ok{color:var(--deep-mint)} .status.err{color:#E0684B}
+#qr-preview{margin-top:14px;display:none}
+#qr-preview img{max-width:240px;border:1px solid var(--line);border-radius:12px;padding:8px;background:#fff}
+.pill{display:inline-block;background:var(--mist);color:var(--deep-mint);font-weight:700;border-radius:99px;padding:4px 14px;font-size:13px;margin-left:8px}
+.pill.off{background:#FDECE7;color:#E0684B}
+#gate{max-width:420px;margin:80px auto;text-align:center}
+#panel{display:none}
+label{font-weight:700;font-size:14px;display:block;margin:10px 0 6px}
+.muted{color:var(--slate);font-size:13px;line-height:1.5}
+</style>
+</head>
+<body>
+
+<div id="gate" class="card">
+  <h1>carbon<span>MICE</span> Game Admin</h1>
+  <p class="sub">ใส่ PIN เพื่อเข้าจัดการ</p>
+  <input type="password" id="pin" placeholder="PIN" style="text-align:center;font-size:22px;letter-spacing:8px" maxlength="8">
+  <br><button class="btn btn-primary" style="margin-top:14px" onclick="checkPin()">เข้าสู่ระบบ</button>
+  <div class="status" id="gate-status"></div>
+</div>
+
+<div id="panel">
+  <h1>carbon<span>MICE</span> Game Admin <span class="pill" id="conn-pill">ตรวจสอบ…</span></h1>
+  <p class="sub">จัดการ leaderboard · QR Code · ตั้งค่างาน</p>
+
+  <div class="card">
+    <h2>🏆 Leaderboard</h2>
+    <div>
+      <button class="btn btn-primary" onclick="loadBoard()">🔄 รีเฟรช</button>
+      <button class="btn btn-ghost" onclick="exportCSV()">⬇️ Export CSV</button>
+      <button class="btn btn-danger" onclick="clearScores()">🗑️ ล้างคะแนนทั้งหมด</button>
+    </div>
+    <div class="status" id="board-status"></div>
+    <div style="overflow-x:auto;margin-top:10px">
+      <table id="board-table">
+        <thead><tr><th>#</th><th>ชื่อ</th><th>หน่วยงาน</th><th class="num">คะแนน</th><th>เวลา</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📱 QR Code ของงาน (แสดงตอนจบเกม)</h2>
+    <p class="muted">อัปโหลดไฟล์ QR ของงานบน platform carbonMICE ได้ทั้ง <b>PDF / PNG / JPG</b> — ถ้าเป็น PDF ระบบจะดึงหน้าแรกมาแปลงเป็นภาพให้อัตโนมัติ</p>
+    <label>เลือกไฟล์</label>
+    <input type="file" id="qr-file" accept=".pdf,.png,.jpg,.jpeg" onchange="handleQRFile(this.files[0])">
+    <div id="qr-preview"><img id="qr-img" alt="QR preview"><br>
+      <button class="btn btn-mint" onclick="saveQR()">💾 บันทึก QR ขึ้นระบบ</button>
+    </div>
+    <div class="status" id="qr-status"></div>
+  </div>
+
+  <div class="card">
+    <h2>⚙️ ตั้งค่างาน</h2>
+    <label>ชื่องาน (แสดงบนหน้าจบเกม)</label>
+    <input type="text" id="event-name" placeholder="เช่น TTM+ 2026">
+    <br><button class="btn btn-primary" onclick="saveEventName()">บันทึกชื่องาน</button>
+    <div class="status" id="cfg-status"></div>
+    <p class="muted" style="margin-top:10px">API URL ปัจจุบัน: <span id="api-show" style="font-family:Inter">—</span><br>
+    แก้ที่ไฟล์ <b>config.js</b> · วิธี deploy backend ดู <b>backend/SETUP_GOOGLE.md</b></p>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script>
+"use strict";
+const CFG=window.GAME_CONFIG||{};
+const $=id=>document.getElementById(id);
+let qrDataURL='';
+
+/* ── PIN gate ── */
+function checkPin(){
+  if($('pin').value===(CFG.ADMIN_PIN||'2468')){
+    $('gate').style.display='none';$('panel').style.display='block';init();
+  }else{$('gate-status').textContent='PIN ไม่ถูกต้อง';$('gate-status').className='status err';}
+}
+$('pin').addEventListener('keydown',e=>{if(e.key==='Enter')checkPin()});
+
+/* ── API helpers (เหมือนฝั่งเกม) ── */
+async function api(action,payload){
+  if(!CFG.API_URL)throw new Error('ยังไม่ได้ตั้ง API_URL ใน config.js');
+  const res=await fetch(CFG.API_URL,{method:'POST',redirect:'follow',
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body:JSON.stringify(Object.assign({action},payload||{}))});
+  return res.json();
+}
+async function apiGet(params){
+  if(!CFG.API_URL)throw new Error('ยังไม่ได้ตั้ง API_URL ใน config.js');
+  const u=new URL(CFG.API_URL);Object.entries(params).forEach(([k,v])=>u.searchParams.set(k,v));
+  return (await fetch(u,{redirect:'follow'})).json();
+}
+function localScores(){try{return JSON.parse(localStorage.getItem('cmice_game_scores')||'[]')}catch(e){return[]}}
+
+async function init(){
+  $('api-show').textContent=CFG.API_URL||'(ยังไม่ตั้งค่า — โหมด local)';
+  try{ await apiGet({action:'ping'}); setPill(true); }catch(e){ setPill(false); }
+  loadBoard(); loadConfig();
+}
+function setPill(on){
+  const p=$('conn-pill');
+  p.textContent=on?'● ออนไลน์':'● ออฟไลน์ (ใช้ข้อมูลเครื่องนี้)';
+  p.className='pill'+(on?'':' off');
+}
+
+/* ── leaderboard ── */
+let boardRows=[];
+async function loadBoard(){
+  const st=$('board-status');st.textContent='กำลังโหลด…';st.className='status';
+  try{
+    const r=await apiGet({action:'leaderboard',limit:200});
+    boardRows=r.top||[];
+    st.textContent='ออนไลน์ · ผู้เล่นทั้งหมด '+(r.total??boardRows.length)+' คน';st.className='status ok';
+  }catch(e){
+    boardRows=localScores();
+    st.textContent='ออฟไลน์ — แสดงคะแนนที่เก็บในเครื่องนี้ ('+boardRows.length+' รายการ)';st.className='status err';
+  }
+  renderBoard();
+}
+function renderBoard(){
+  const tb=document.querySelector('#board-table tbody');tb.innerHTML='';
+  boardRows.forEach((r,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td class="num">${i+1}</td><td>${esc(r.name)}</td><td>${esc(r.org||'')}</td><td class="num"><b>${r.score}</b></td><td>${fmtTs(r.ts)}</td>`;
+    tb.appendChild(tr);
+  });
+  if(!boardRows.length)tb.innerHTML='<tr><td colspan="5" style="color:var(--slate)">ยังไม่มีคะแนน</td></tr>';
+}
+function fmtTs(ts){try{return new Date(ts).toLocaleString('th-TH',{dateStyle:'short',timeStyle:'short'})}catch(e){return ts||''}}
+function esc(s){return String(s||'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]))}
+
+function exportCSV(){
+  const rows=[['rank','name','org','score','timestamp'],
+    ...boardRows.map((r,i)=>[i+1,r.name,r.org||'',r.score,r.ts||''])];
+  const csv='﻿'+rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download='carbonmice_game_scores.csv';a.click();
+}
+
+async function clearScores(){
+  const key=prompt('พิมพ์ ADMIN_KEY (ตั้งไว้ใน Code.gs) เพื่อยืนยันการล้างคะแนนทั้งหมด:');
+  if(!key)return;
+  const st=$('board-status');
+  try{
+    const r=await api('clearScores',{key});
+    if(r.ok){localStorage.removeItem('cmice_game_scores');st.textContent='ล้างคะแนนแล้ว';st.className='status ok';loadBoard();}
+    else{st.textContent='ADMIN_KEY ไม่ถูกต้อง';st.className='status err';}
+  }catch(e){
+    if(confirm('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ — ล้างเฉพาะคะแนนในเครื่องนี้แทน?')){
+      localStorage.removeItem('cmice_game_scores');loadBoard();
+    }
+  }
+}
+
+/* ── QR upload: PDF → render หน้าแรกเป็นภาพ / PNG-JPG ใช้ตรงๆ ── */
+async function handleQRFile(file){
+  if(!file)return;
+  const st=$('qr-status');st.textContent='กำลังประมวลผล…';st.className='status';
+  try{
+    if(file.type==='application/pdf'||/\.pdf$/i.test(file.name)){
+      if(!window.pdfjsLib)throw new Error('โหลด pdf.js ไม่ได้ (ต้องมีอินเทอร์เน็ต)');
+      pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;
+      const page=await pdf.getPage(1);
+      const vp=page.getViewport({scale:2});
+      const canvas=document.createElement('canvas');
+      canvas.width=vp.width;canvas.height=vp.height;
+      await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;
+      qrDataURL=shrink(canvas,900);
+    }else{
+      qrDataURL=await new Promise((ok,bad)=>{
+        const img=new Image();
+        img.onload=()=>{const c=document.createElement('canvas');c.width=img.width;c.height=img.height;
+          c.getContext('2d').drawImage(img,0,0);ok(shrink(c,900));};
+        img.onerror=bad;img.src=URL.createObjectURL(file);
+      });
+    }
+    $('qr-img').src=qrDataURL;$('qr-preview').style.display='block';
+    st.textContent='พรีวิวพร้อมแล้ว — กด "บันทึก QR ขึ้นระบบ"';st.className='status ok';
+  }catch(e){st.textContent='ผิดพลาด: '+e.message;st.className='status err';}
+}
+function shrink(canvas,maxW){
+  if(canvas.width<=maxW)return canvas.toDataURL('image/png');
+  const c=document.createElement('canvas');
+  c.width=maxW;c.height=Math.round(canvas.height*maxW/canvas.width);
+  c.getContext('2d').drawImage(canvas,0,0,c.width,c.height);
+  return c.toDataURL('image/png');
+}
+async function saveQR(){
+  const st=$('qr-status');st.textContent='กำลังอัปโหลด…';st.className='status';
+  localStorage.setItem('cmice_game_qr',qrDataURL); // ให้เครื่องนี้ใช้ได้ทันทีแม้ออฟไลน์
+  try{
+    const r=await api('saveQR',{qr:qrDataURL});
+    if(r.ok){st.textContent='✅ บันทึกขึ้นระบบแล้ว — ทุกเครื่องจะได้ QR ใหม่';st.className='status ok';}
+    else throw new Error(r.error||'save failed');
+  }catch(e){st.textContent='บันทึกในเครื่องนี้แล้ว แต่ขึ้นเซิร์ฟเวอร์ไม่ได้: '+e.message;st.className='status err';}
+}
+
+/* ── config ── */
+async function loadConfig(){
+  try{const r=await apiGet({action:'config'});if(r.eventName)$('event-name').value=r.eventName;}
+  catch(e){$('event-name').value=localStorage.getItem('cmice_game_event')||CFG.EVENT_NAME||'';}
+}
+async function saveEventName(){
+  const name=$('event-name').value.trim();const st=$('cfg-status');
+  localStorage.setItem('cmice_game_event',name);
+  try{const r=await api('saveConfig',{eventName:name});
+    st.textContent=r.ok?'✅ บันทึกแล้ว':'ผิดพลาด';st.className='status '+(r.ok?'ok':'err');}
+  catch(e){st.textContent='บันทึกในเครื่องนี้แล้ว (เซิร์ฟเวอร์ไม่ตอบ)';st.className='status err';}
+}
+</script>
+</body>
+</html>
