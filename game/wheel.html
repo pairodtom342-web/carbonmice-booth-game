@@ -25,13 +25,14 @@ body{font-family:'Sarabun','Inter',sans-serif;color:var(--navy);background:var(-
   background:#fff;border:1px solid var(--line);border-radius:99px;padding:.9vh 16px;box-shadow:0 3px 10px rgba(20,30,60,.05)}
 .topbar img{height:4.4vh;max-height:48px;object-fit:contain}
 
-.head{text-align:center;margin-bottom:1.4vh}
-.head h1{font-size:clamp(22px,3.2vh,32px);font-weight:800;line-height:1.2}
+.head{text-align:center;margin-bottom:.6vh}
+.head h1{font-size:clamp(21px,3vh,30px);font-weight:800;line-height:1.2}
 .head h1 span{color:var(--deep-mint)}
-.head p{font-size:clamp(13px,1.8vh,17px);color:var(--slate);margin-top:.4vh}
+.head p{font-size:clamp(12px,1.6vh,16px);color:var(--slate);margin-top:.3vh}
 
 /* ── wheel ── */
-.wheel-wrap{position:relative;width:min(86vw,calc(86vh*9/16));aspect-ratio:1;margin:1vh auto 0;flex:0 0 auto}
+.wheel-area{flex:1;width:100%;display:flex;align-items:center;justify-content:center;min-height:0;padding:1vh 0}
+.wheel-wrap{position:relative;width:min(90vw,58vh);aspect-ratio:1;flex:0 0 auto}
 .pointer{position:absolute;top:-1.5%;left:50%;transform:translateX(-50%);z-index:6;
   width:0;height:0;border-left:18px solid transparent;border-right:18px solid transparent;
   border-top:30px solid var(--navy);filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
@@ -46,15 +47,17 @@ body{font-family:'Sarabun','Inter',sans-serif;color:var(--navy);background:var(-
 .hub img{width:78%}
 
 /* ── spin button ── */
-.spin-btn{margin-top:2.6vh;border:none;border-radius:22px;font-family:inherit;font-weight:800;cursor:pointer;
-  min-height:66px;font-size:clamp(19px,2.7vh,27px);padding:1.7vh 40px;color:#fff;width:88%;
+.spin-btn{margin-top:1.6vh;border:none;border-radius:22px;font-family:inherit;font-weight:800;cursor:pointer;
+  min-height:64px;font-size:clamp(19px,2.7vh,27px);padding:1.7vh 40px;color:#fff;width:88%;flex:0 0 auto;
   background:linear-gradient(135deg,#065DED,#0FAE8E);box-shadow:0 8px 26px rgba(6,93,237,.32);
   transition:transform .08s}
 .spin-btn:active{transform:scale(.97)}
 .spin-btn:disabled{opacity:.5;cursor:default;box-shadow:none}
 .spin-btn.pulse{animation:pulse 1.6s ease-in-out infinite}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
-.hint{margin-top:1.2vh;font-size:clamp(12px,1.6vh,15px);color:var(--slate);text-align:center;min-height:2.2vh}
+.hint{margin-top:1vh;font-size:clamp(12px,1.6vh,15px);color:var(--deep-mint);text-align:center;min-height:1.6vh;font-weight:700}
+.legend{margin-top:.4vh;display:flex;flex-wrap:wrap;justify-content:center;gap:6px 18px;flex:0 0 auto}
+.legend span{font-size:clamp(11px,1.5vh,15px);color:var(--slate);font-weight:600;white-space:nowrap}
 
 /* ── result modal ── */
 #modal{position:absolute;inset:0;z-index:30;display:none;justify-content:center;align-items:center;padding:8%;
@@ -91,17 +94,20 @@ body{font-family:'Sarabun','Inter',sans-serif;color:var(--navy);background:var(-
   </div>
   <div class="head">
     <h1>🎡 วงล้อ<span>ลุ้นรางวัล</span></h1>
-    <p>แตะปุ่มด้านล่างเพื่อหมุน · ลุ้นของรางวัลจาก carbonMICE</p>
+    <p>แตะเพื่อหมุน · ลุ้นรางวัลจาก carbonMICE</p>
   </div>
 
-  <div class="wheel-wrap">
-    <div class="pointer"></div>
-    <svg id="wheel" viewBox="0 0 300 300" aria-label="วงล้อรางวัล"></svg>
-    <div class="hub"><img src="assets/logo.png" alt=""></div>
+  <div class="wheel-area">
+    <div class="wheel-wrap">
+      <div class="pointer"></div>
+      <svg id="wheel" viewBox="0 0 300 300" aria-label="วงล้อรางวัล"></svg>
+      <div class="hub"><img src="assets/logo.png" alt=""></div>
+    </div>
   </div>
 
   <button class="spin-btn pulse" id="spinBtn" onclick="spin()">🎯 หมุนวงล้อ!</button>
   <div class="hint" id="hint"></div>
+  <div class="legend"><span>🎁 ของรางวัล</span><span>🔄 หมุนอีกครั้ง</span><span>🍃 ครั้งหน้ามาใหม่</span></div>
 
   <canvas id="fx"></canvas>
   <div id="modal"><div class="modal-card" id="modalCard">
@@ -159,28 +165,28 @@ async function syncPrizes(){
 /* ── วาดวงล้อ SVG ── */
 const R=150, CX=150, CY=150;
 function polar(cx,cy,r,deg){const a=(deg-90)*Math.PI/180;return[cx+r*Math.cos(a),cy+r*Math.sin(a)];}
+const ICO={win:'🎁',again:'🔄',lose:'🍃'};
 function buildWheel(){
   const n=PRIZES.length, seg=360/n;
   let svg='';
+  // 1) ชิ้นสี + เส้นคั่นขาว (ไม่ใส่ชื่อรางวัล — คลีน อ่านง่าย)
   for(let i=0;i<n;i++){
     const a0=i*seg, a1=(i+1)*seg;
     const [x0,y0]=polar(CX,CY,R,a0), [x1,y1]=polar(CX,CY,R,a1);
     const large=seg>180?1:0;
-    svg+=`<path d="M${CX} ${CY} L${x0.toFixed(2)} ${y0.toFixed(2)} A${R} ${R} 0 ${large} 1 ${x1.toFixed(2)} ${y1.toFixed(2)} Z" fill="${SEG_COLORS[i%SEG_COLORS.length]}"/>`;
-    // ป้ายข้อความ วางแนวรัศมี กลาง segment
-    const mid=a0+seg/2;
-    const [tx,ty]=polar(CX,CY,R*0.62,mid);
-    const lines=String(PRIZES[i].label).split('\n');
-    const fs=lines.some(l=>l.length>9)?12:14;
-    let tspans=lines.map((l,li)=>`<tspan x="0" dy="${li===0?0:1.05}em">${esc(l)}</tspan>`).join('');
-    svg+=`<g transform="translate(${tx.toFixed(2)} ${ty.toFixed(2)}) rotate(${mid})"><text text-anchor="middle" font-family="Sarabun,sans-serif" font-weight="800" font-size="${fs}" fill="${TEXT_ON[i%TEXT_ON.length]}" y="${-(lines.length-1)*fs*0.5}">${tspans}</text></g>`;
-    // ไอคอนเล็กตามชนิด
-    const [ix,iy]=polar(CX,CY,R*0.86,mid);
-    const ico=PRIZES[i].type==='win'?'🎁':PRIZES[i].type==='again'?'🔄':'🍀';
-    svg+=`<text x="${ix.toFixed(2)}" y="${(iy+5).toFixed(2)}" text-anchor="middle" font-size="15">${ico}</text>`;
+    svg+=`<path d="M${CX} ${CY} L${x0.toFixed(2)} ${y0.toFixed(2)} A${R} ${R} 0 ${large} 1 ${x1.toFixed(2)} ${y1.toFixed(2)} Z" fill="${SEG_COLORS[i%SEG_COLORS.length]}" stroke="#ffffff" stroke-width="1.6" stroke-opacity=".45" stroke-linejoin="round"/>`;
   }
-  // เส้นคั่น + ขอบ
-  svg+=`<circle cx="${CX}" cy="${CY}" r="${R-1}" fill="none" stroke="#ffffff" stroke-width="2" opacity=".55"/>`;
+  // 2) ไอคอนใหญ่ต่อช่อง วางตั้งตรง (ไม่หมุนตามช่อง) + วงกลมฝ้าให้เด่น
+  const iconR=R*0.64, halo=22, fs=30;
+  for(let i=0;i<n;i++){
+    const mid=i*seg+seg/2;
+    const [ix,iy]=polar(CX,CY,iconR,mid);
+    svg+=`<circle cx="${ix.toFixed(2)}" cy="${iy.toFixed(2)}" r="${halo}" fill="#ffffff" opacity=".16"/>`;
+    svg+=`<text x="${ix.toFixed(2)}" y="${(iy+fs*0.35).toFixed(2)}" text-anchor="middle" font-size="${fs}">${ICO[PRIZES[i].type]||'🎁'}</text>`;
+  }
+  // 3) ขอบวงในบางๆ ให้ดูเป็นวงล้อจริง
+  svg+=`<circle cx="${CX}" cy="${CY}" r="${R-2}" fill="none" stroke="#ffffff" stroke-width="2.5" opacity=".7"/>`;
+  svg+=`<circle cx="${CX}" cy="${CY}" r="${R*0.30}" fill="none" stroke="#ffffff" stroke-width="1.4" opacity=".28"/>`;
   $('wheel').innerHTML=svg;
 }
 function esc(s){return String(s).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));}
