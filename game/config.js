@@ -11,5 +11,18 @@ window.GAME_CONFIG = {
   EVENT_NAME: "carbonMICE",
 
   // สำรอง: dataURL ของภาพ QR (ใช้เมื่อยังไม่ได้อัปโหลดผ่าน admin / ไม่มีเน็ต)
-  QR_FALLBACK: ""
+  QR_FALLBACK: "",
+
+  // ของรางวัลวงล้อหมุน (ค่าเริ่มต้น — แก้/ซิงก์ได้จากหน้า admin)
+  // type: win = ได้รางวัล · again = หมุนอีกครั้ง · lose = ไม่ได้/ครั้งหน้ามาใหม่ · weight = โอกาสออก
+  WHEEL_PRIZES: [
+    {label:"ของที่ระลึก\ncarbonMICE", type:"win",   weight:2},
+    {label:"หมุนอีกครั้ง!",           type:"again", weight:2},
+    {label:"ต้นไม้ฟอกอากาศ",          type:"win",   weight:2},
+    {label:"ครั้งหน้า\nมาใหม่นะ",      type:"lose",  weight:3},
+    {label:"ปากกา Eco",              type:"win",   weight:2},
+    {label:"หมุนอีกครั้ง!",           type:"again", weight:2},
+    {label:"กระเป๋าผ้า\ncarbonMICE",  type:"win",   weight:2},
+    {label:"พลาดนิดเดียว!",           type:"lose",  weight:3}
+  ]
 };

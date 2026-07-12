@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>carbonMICE — Sustainable Event Game</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --blue:#065DED; --mint:#35E5C0; --navy:#1A1A2E; --deep-mint:#0FAE8E;
+  --slate:#8A94A6; --bg:#F4F7FB; --sky:#EAF2FF; --mist:#E8FFF9; --line:#EAEEF5;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+html,body{height:100%;overflow:hidden}
+body{
+  font-family:'Sarabun','Inter',sans-serif;color:var(--navy);background:var(--bg);
+  display:flex;justify-content:center;align-items:center;
+}
+#stage{
+  position:relative;width:100vw;height:100vh;max-width:calc(100vh*9/16);
+  background:var(--bg);overflow:hidden;display:flex;flex-direction:column;
+}
+.screen{position:absolute;inset:0;display:none;flex-direction:column;padding:4vh 6% 3vh}
+.screen.active{display:flex}
+.num,.score-font{font-family:'Inter','Sarabun',sans-serif}
+
+/* ── shared ── */
+.logo-top{display:flex;justify-content:center;margin-bottom:1.5vh}
+.logo-top img{height:5.5vh;max-height:64px;object-fit:contain}
+.btn{
+  border:none;border-radius:20px;font-family:inherit;font-weight:700;cursor:pointer;
+  min-height:64px;font-size:clamp(18px,2.6vh,26px);padding:1.6vh 24px;width:100%;
+  transition:transform .08s;
+}
+.btn:active{transform:scale(.97)}
+a.btn{text-decoration:none;display:block;text-align:center;line-height:1.4;box-sizing:border-box}
+.btn-primary{background:var(--blue);color:#fff;box-shadow:0 6px 22px rgba(6,93,237,.28)}
+.btn-mint{background:var(--mint);color:var(--navy);box-shadow:0 6px 22px rgba(53,229,192,.35)}
+.btn-ghost{background:#fff;color:var(--blue);border:2px solid var(--sky)}
+.card{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 6px 22px rgba(20,30,60,.06)}
+.hud{
+  display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2vh;
+  background:#fff;border:1px solid var(--line);border-radius:16px;padding:1.2vh 18px;
+  box-shadow:0 4px 14px rgba(20,30,60,.05);
+}
+.hud .hud-step{font-size:clamp(13px,1.7vh,17px);color:var(--slate);font-weight:600}
+.hud .hud-score{font-size:clamp(18px,2.4vh,24px);font-weight:800;color:var(--blue)}
+.hud .hud-score small{font-size:.6em;color:var(--slate);font-weight:600}
+.progress{height:8px;background:var(--sky);border-radius:99px;overflow:hidden;margin-bottom:2vh}
+.progress>div{height:100%;width:0;background:linear-gradient(90deg,var(--blue),var(--mint));border-radius:99px;transition:width .4s}
+.mission-title{font-size:clamp(22px,3.2vh,32px);font-weight:800;line-height:1.3;margin-bottom:.6vh}
+.mission-sub{font-size:clamp(15px,2vh,19px);color:var(--slate);margin-bottom:2.2vh;line-height:1.45}
+.timerbar{height:10px;background:var(--sky);border-radius:99px;overflow:hidden;margin-bottom:2vh}
+.timerbar>div{height:100%;width:100%;background:linear-gradient(90deg,var(--mint),var(--blue));border-radius:99px}
+
+/* ── splash ── */
+#scr-splash{justify-content:space-between;text-align:center;background:
+  radial-gradient(120% 60% at 50% -10%,var(--sky) 0%,var(--bg) 55%)}
+#scr-splash .hero{display:flex;flex-direction:column;align-items:center;gap:2vh;margin-top:6vh}
+#scr-splash .hero img{width:62%;max-width:340px}
+#scr-splash h1{font-size:clamp(30px,4.6vh,46px);font-weight:800;line-height:1.25}
+#scr-splash h1 span{color:var(--blue)}
+#scr-splash .tag{font-size:clamp(16px,2.2vh,21px);color:var(--slate);line-height:1.5}
+.splash-board{margin:0 auto;width:100%;padding:2vh 22px;text-align:left}
+.splash-board h3{font-size:clamp(14px,1.9vh,18px);color:var(--deep-mint);font-weight:800;margin-bottom:1vh;letter-spacing:.4px}
+.splash-board .row{display:flex;justify-content:space-between;font-size:clamp(15px,2vh,19px);padding:.55vh 0;border-bottom:1px dashed var(--line)}
+.splash-board .row:last-child{border-bottom:none}
+.splash-board .row b{font-weight:800;color:var(--blue)}
+.pulse{animation:pulse 1.8s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.035)}}
+
+/* ── name entry ── */
+#scr-name h2{font-size:clamp(24px,3.4vh,34px);font-weight:800;text-align:center;margin:3vh 0 .8vh}
+#scr-name p{color:var(--slate);text-align:center;margin-bottom:3vh;font-size:clamp(15px,2vh,19px)}
+.field{margin-bottom:2vh}
+.field label{display:block;font-weight:700;margin-bottom:.8vh;font-size:clamp(15px,2vh,19px)}
+.field input{
+  width:100%;border:2px solid var(--line);border-radius:16px;padding:1.8vh 18px;
+  font-family:inherit;font-size:clamp(18px,2.5vh,24px);background:#fff;color:var(--navy);outline:none;
+}
+.field input:focus{border-color:var(--blue)}
+
+/* ── choice missions ── */
+.choices{display:flex;flex-direction:column;gap:1.6vh;flex:1}
+.choice{
+  display:flex;align-items:center;gap:16px;text-align:left;padding:2vh 18px;
+  background:#fff;border:2px solid var(--line);border-radius:18px;cursor:pointer;
+  box-shadow:0 4px 14px rgba(20,30,60,.05);transition:transform .08s;
+}
+.choice:active{transform:scale(.98)}
+.choice .emo{font-size:clamp(30px,4.4vh,44px);flex:0 0 auto}
+.choice .txt b{display:block;font-size:clamp(17px,2.3vh,22px);font-weight:800;line-height:1.3}
+.choice .txt small{color:var(--slate);font-size:clamp(13px,1.8vh,17px);line-height:1.4;display:block;margin-top:2px}
+
+/* feedback overlay */
+#feedback{
+  position:absolute;inset:0;background:rgba(26,26,46,.45);display:none;
+  justify-content:center;align-items:center;padding:8%;z-index:50;
+}
+#feedback.show{display:flex}
+#feedback .fb-card{background:#fff;border-radius:24px;padding:4vh 26px;text-align:center;width:100%;box-shadow:0 20px 60px rgba(20,30,60,.3)}
+#feedback .fb-emo{font-size:clamp(44px,7vh,70px);margin-bottom:1vh}
+#feedback .fb-pts{font-size:clamp(26px,3.8vh,38px);font-weight:800;margin-bottom:1vh}
+#feedback .fb-pts.good{color:var(--deep-mint)} #feedback .fb-pts.mid{color:var(--blue)} #feedback .fb-pts.bad{color:#E0684B}
+#feedback .fb-msg{font-size:clamp(15px,2.1vh,20px);line-height:1.55;color:var(--navy)}
+
+/* ── waste sorting ── */
+#sort-item{margin:0 auto 2.4vh;width:78%;text-align:center;padding:3vh 20px}
+#sort-item .emo{font-size:clamp(52px,9vh,88px)}
+#sort-item .name{font-size:clamp(19px,2.7vh,27px);font-weight:800;margin-top:.8vh}
+#sort-item .left{font-size:clamp(13px,1.8vh,17px);color:var(--slate);margin-top:.4vh}
+.bins{display:grid;grid-template-columns:1fr 1fr;gap:1.4vh;margin-top:auto}
+.bin{
+  border:none;border-radius:18px;padding:2.2vh 10px;font-family:inherit;font-weight:800;
+  font-size:clamp(15px,2.1vh,20px);color:#fff;cursor:pointer;min-height:88px;line-height:1.3;
+  transition:transform .08s;
+}
+.bin:active{transform:scale(.96)}
+.bin .bin-emo{display:block;font-size:clamp(26px,3.8vh,38px);margin-bottom:.4vh}
+.bin-recycle{background:#F5B93E}.bin-organic{background:#2E9E5B}
+.bin-general{background:#4C6FFF}.bin-hazard{background:#E0684B}
+.sort-toast{min-height:7vh;display:flex;justify-content:center;align-items:center;margin-bottom:1vh}
+.sort-toast span{
+  opacity:0;transition:opacity .15s;background:#fff;border-radius:99px;padding:1vh 22px;
+  font-weight:800;font-size:clamp(15px,2.1vh,20px);box-shadow:0 4px 14px rgba(20,30,60,.12);
+  border:2px solid var(--line);max-width:100%;text-align:center;line-height:1.35;
+}
+.sort-toast span.on{opacity:1}
+.sort-toast span.good{color:var(--deep-mint);border-color:var(--mint);background:var(--mist)}
+.sort-toast span.bad{color:#E0684B;border-color:#F4C7BC;background:#FDF3F0}
+
+/* ── data collect ── */
+#collect-grid{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(4,1fr);gap:1.4vh;flex:1;margin-bottom:1vh}
+.cell{background:#fff;border:1px solid var(--line);border-radius:18px;display:flex;flex-direction:column;justify-content:center;align-items:center;cursor:pointer;box-shadow:0 4px 14px rgba(20,30,60,.05);overflow:hidden}
+.cell .c-emo{font-size:clamp(30px,4.6vh,46px);line-height:1}
+.cell .c-lab{font-size:clamp(10px,1.4vh,13px);font-weight:700;color:var(--slate);margin-top:.5vh;text-align:center;padding:0 4px}
+.cell.pop{animation:pop .18s ease-out}
+@keyframes pop{from{transform:scale(.6)}to{transform:scale(1)}}
+.cell.hit-good{background:var(--mist);border-color:var(--mint)}
+.cell.hit-bad{background:#FDECE7;border-color:#E0684B}
+
+/* ── quiz ── */
+.quiz-q{padding:2.6vh 22px;font-size:clamp(18px,2.6vh,26px);font-weight:800;line-height:1.45;margin-bottom:2vh;text-align:center}
+.quiz-opts{display:flex;flex-direction:column;gap:1.4vh;flex:1}
+.qopt{
+  background:#fff;border:2px solid var(--line);border-radius:18px;padding:2vh 18px;text-align:left;
+  font-family:inherit;font-size:clamp(16px,2.2vh,21px);font-weight:600;color:var(--navy);cursor:pointer;
+  box-shadow:0 4px 14px rgba(20,30,60,.05);line-height:1.4;transition:transform .08s;
+}
+.qopt:active{transform:scale(.98)}
+.qopt.correct{background:var(--mist);border-color:var(--deep-mint);color:var(--deep-mint);font-weight:800}
+.qopt.wrong{background:#FDECE7;border-color:#E0684B;color:#E0684B}
+.qz-read{
+  text-align:center;color:var(--slate);font-size:clamp(15px,2.1vh,20px);font-weight:600;
+  padding:3vh 10px;line-height:1.5;
+}
+.qz-read b{color:var(--blue);font-size:1.2em}
+
+/* ── result ── */
+#scr-result{overflow-y:auto;text-align:center}
+.res-tier{font-size:clamp(15px,2vh,19px);font-weight:800;color:var(--deep-mint);letter-spacing:1px;margin-top:1vh}
+.res-score{font-size:clamp(56px,9vh,92px);font-weight:800;color:var(--blue);line-height:1.05}
+.res-unit{font-size:clamp(14px,1.9vh,18px);color:var(--slate);font-weight:600;margin-bottom:1.4vh}
+.res-rank{display:inline-block;background:var(--sky);color:var(--blue);font-weight:800;border-radius:99px;padding:.8vh 22px;font-size:clamp(15px,2.1vh,20px);margin-bottom:1.6vh}
+.res-board{text-align:left;padding:1.6vh 20px;margin-bottom:1.8vh}
+.res-board h3{font-size:clamp(13px,1.8vh,17px);color:var(--deep-mint);font-weight:800;margin-bottom:.8vh}
+.res-board .row{display:flex;justify-content:space-between;font-size:clamp(14px,1.9vh,18px);padding:.45vh 0;border-bottom:1px dashed var(--line)}
+.res-board .row:last-child{border-bottom:none}
+.res-board .row.me{color:var(--blue);font-weight:800}
+.qr-block{background:linear-gradient(180deg,var(--mist),#fff);border:2px solid var(--mint);border-radius:22px;padding:2.2vh 20px;margin-bottom:1.8vh}
+.qr-block h3{font-size:clamp(17px,2.4vh,23px);font-weight:800;margin-bottom:.4vh}
+.qr-block p{font-size:clamp(13px,1.8vh,17px);color:var(--slate);margin-bottom:1.4vh;line-height:1.45}
+.qr-block img{width:56%;max-width:260px;border-radius:12px;background:#fff;padding:8px;border:1px solid var(--line)}
+.qr-missing{font-size:clamp(13px,1.8vh,17px);color:var(--slate);padding:3vh 0}
+.res-count{font-size:clamp(12px,1.6vh,15px);color:var(--slate);margin-top:1vh}
+.saving{font-size:clamp(12px,1.6vh,15px);color:var(--slate)}
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <!-- SPLASH -->
+  <div class="screen active" id="scr-splash">
+    <div class="hero">
+      <img src="assets/logo.png" alt="carbonMICE">
+      <h1>ภารกิจจัดงานอีเวนต์<br><span>แบบยั่งยืน</span></h1>
+      <div class="tag">เล่นเกม 2 นาที · สะสมคะแนน · ลุ้นของรางวัล<br>แล้วมาเป็นส่วนหนึ่งของงานคาร์บอนต่ำไปด้วยกัน</div>
+    </div>
+    <div class="splash-board card">
+      <h3>🏆 TOP 5 อันดับคะแนนสูงสุด</h3>
+      <div id="splash-top5"><div class="row"><span>ยังไม่มีผู้เล่น — มาเป็นคนแรก!</span></div></div>
+    </div>
+    <button class="btn btn-primary pulse" onclick="goName()">▶ แตะเพื่อเริ่มเกม</button>
+    <a class="btn btn-ghost" href="index.html" style="margin-top:1.2vh;text-decoration:none">🏠 เลือกเกมอื่น</a>
+  </div>
+
+  <!-- NAME -->
+  <div class="screen" id="scr-name">
+    <div class="logo-top"><img src="assets/logo.png" alt=""></div>
+    <h2>ลงชื่อผู้ท้าชิง</h2>
+    <p>คะแนนสูงสุดมีสิทธิ์รับของรางวัลที่บูท carbonMICE</p>
+    <div class="field">
+      <label>ชื่อเล่น *</label>
+      <input id="in-name" type="text" maxlength="20" placeholder="เช่น น้องมิ้นต์" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>หน่วยงาน / บริษัท (ไม่บังคับ)</label>
+      <input id="in-org" type="text" maxlength="40" placeholder="เช่น PEA" autocomplete="off">
+    </div>
+    <div style="margin-top:auto;display:flex;flex-direction:column;gap:1.4vh">
+      <button class="btn btn-mint" onclick="startGame()">เริ่มภารกิจ 🚀</button>
+      <button class="btn btn-ghost" onclick="show('scr-splash')">← กลับ</button>
+    </div>
+  </div>
+
+  <!-- CHOICE MISSION -->
+  <div class="screen" id="scr-choice">
+    <div class="hud"><span class="hud-step" id="ch-step"></span><span class="hud-score"><span id="ch-score" class="num">0</span> <small>คะแนน</small></span></div>
+    <div class="progress"><div id="ch-prog"></div></div>
+    <div class="mission-title" id="ch-title"></div>
+    <div class="mission-sub" id="ch-sub"></div>
+    <div class="choices" id="ch-opts"></div>
+  </div>
+
+  <!-- WASTE SORT -->
+  <div class="screen" id="scr-sort">
+    <div class="hud"><span class="hud-step" id="so-step"></span><span class="hud-score"><span id="so-score" class="num">0</span> <small>คะแนน</small></span></div>
+    <div class="progress"><div id="so-prog"></div></div>
+    <div class="mission-title">♻️ แยกขยะในงานให้ถูกถัง</div>
+    <div class="mission-sub">งานยั่งยืนต้องแยกขยะ 100% — แตะถังที่ถูกต้อง</div>
+    <div class="card" id="sort-item"><div class="emo"></div><div class="name"></div><div class="left"></div></div>
+    <div class="sort-toast"><span id="sort-flash"></span></div>
+    <div class="bins">
+      <button class="bin bin-recycle" onclick="dropBin('recycle')"><span class="bin-emo">🟡</span>รีไซเคิล</button>
+      <button class="bin bin-organic" onclick="dropBin('organic')"><span class="bin-emo">🟢</span>เศษอาหาร</button>
+      <button class="bin bin-general" onclick="dropBin('general')"><span class="bin-emo">🔵</span>ขยะทั่วไป</button>
+      <button class="bin bin-hazard" onclick="dropBin('hazard')"><span class="bin-emo">🔴</span>ขยะอันตราย</button>
+    </div>
+  </div>
+
+  <!-- DATA COLLECT -->
+  <div class="screen" id="scr-collect">
+    <div class="hud"><span class="hud-step" id="co-step"></span><span class="hud-score"><span id="co-score" class="num">0</span> <small>คะแนน</small></span></div>
+    <div class="progress"><div id="co-prog"></div></div>
+    <div class="mission-title">📋 เก็บข้อมูลคาร์บอนให้ครบ!</div>
+    <div class="mission-sub">แตะเฉพาะ "ข้อมูลที่ใช้คำนวณคาร์บอน" — ระวังตัวป่วน!</div>
+    <div class="timerbar"><div id="co-timer"></div></div>
+    <div id="collect-grid"></div>
+  </div>
+
+  <!-- QUIZ -->
+  <div class="screen" id="scr-quiz">
+    <div class="hud"><span class="hud-step" id="qz-step"></span><span class="hud-score"><span id="qz-score" class="num">0</span> <small>คะแนน</small></span></div>
+    <div class="progress"><div id="qz-prog"></div></div>
+    <div class="timerbar"><div id="qz-timer"></div></div>
+    <div class="quiz-q card" id="qz-q"></div>
+    <div class="quiz-opts" id="qz-opts"></div>
+  </div>
+
+  <!-- RESULT -->
+  <div class="screen" id="scr-result">
+    <div class="logo-top"><img src="assets/logo.png" alt=""></div>
+    <div class="res-tier" id="res-tier">CARBON HERO</div>
+    <div class="res-score num" id="res-score">0</div>
+    <div class="res-unit">คะแนน — <span id="res-name"></span></div>
+    <div class="res-rank" id="res-rank">กำลังบันทึกคะแนน…</div>
+    <div class="res-board card">
+      <h3>🏆 TOP 5</h3>
+      <div id="res-top5"></div>
+    </div>
+    <div class="qr-block">
+      <h3 id="qr-head">📱 ภารกิจจริงเริ่มที่คุณ!</h3>
+      <p id="qr-desc">สแกน QR เพื่อกรอก <b>ข้อมูลการเดินทางของคุณ</b><br>ให้งาน <span id="res-event">carbonMICE</span> คำนวณคาร์บอนฟุตพริ้นท์ได้ครบถ้วน</p>
+      <div id="qr-holder"><div class="qr-missing">— ยังไม่ได้ตั้งค่า QR (อัปโหลดที่หน้า Admin) —</div></div>
+      <a id="qr-linkbtn" class="btn btn-mint" style="display:none;margin-top:1.4vh" target="_blank" rel="noopener">🔗 เปิดลิงก์</a>
+    </div>
+    <button class="btn btn-primary" onclick="resetToSplash()">เล่นอีกครั้ง / ผู้เล่นถัดไป</button>
+    <div class="res-count">กลับหน้าแรกอัตโนมัติใน <span id="res-cd" class="num">45</span> วิ</div>
+  </div>
+
+  <!-- FEEDBACK OVERLAY -->
+  <div id="feedback"><div class="fb-card">
+    <div class="fb-emo" id="fb-emo">🌱</div>
+    <div class="fb-pts" id="fb-pts">+150</div>
+    <div class="fb-msg" id="fb-msg"></div>
+  </div></div>
+
+</div>
+
+<script src="config.js"></script>
+<script>
+"use strict";
+const CFG = window.GAME_CONFIG || {};
+const $ = id => document.getElementById(id);
+
+/* ═══════════ GAME DATA ═══════════ */
+const CHOICE_MISSIONS = [
+  {
+    title:"🚌 ภารกิจ 1 · การเดินทาง",
+    sub:"ทีมงานและผู้ร่วมงาน 500 คนต้องเดินทางมางาน — การเดินทางมักเป็นสัดส่วนคาร์บอนที่ใหญ่ที่สุดของงานอีเวนต์ คุณจะจัดการอย่างไร?",
+    opts:[
+      {emo:"🚗",b:"ต่างคนต่างขับรถส่วนตัวมาเอง",s:"สะดวกดี ที่จอดรถกว้าง",pts:40,
+       fb:{emo:"💨",cls:"bad",msg:"รถส่วนตัว 1 คน/คัน ปล่อยคาร์บอนต่อหัวสูงที่สุด — งานจริงของ carbonMICE พบว่าการเดินทางคือก้อนคาร์บอนที่ใหญ่ที่สุดของงาน"}},
+      {emo:"🚌",b:"จัด Shuttle Bus รับส่งจากจุดรวมพล",s:"รวมคนขึ้นรถคันเดียวกัน",pts:110,
+       fb:{emo:"👍",cls:"mid",msg:"ดีมาก! รถรับส่งรวมช่วยหารคาร์บอนต่อหัวลงหลายเท่า — จะดีขึ้นอีกถ้าเชื่อมกับขนส่งสาธารณะ"}},
+      {emo:"🚇",b:"เลือกสถานที่ติดรถไฟฟ้า + ชวนใช้ขนส่งสาธารณะ",s:"วางแผนตั้งแต่เลือก venue",pts:150,
+       fb:{emo:"🌟",cls:"good",msg:"สุดยอด! เลือก venue ที่เดินทางด้วยขนส่งสาธารณะได้ = ลดคาร์บอนตั้งแต่ต้นทาง แถมลดรถติดหน้างานด้วย"}},
+    ]
+  },
+  {
+    title:"🍛 ภารกิจ 2 · อาหารในงาน",
+    sub:"ต้องเตรียมอาหารเลี้ยงผู้ร่วมงาน 500 คน เลือกแบบไหนให้งานยั่งยืนที่สุด?",
+    opts:[
+      {emo:"🥩",b:"บุฟเฟ่ต์ไม่อั้น เมนูเนื้อนำเข้า",s:"จัดเต็มให้ประทับใจ",pts:40,
+       fb:{emo:"🗑️",cls:"bad",msg:"เนื้อวัวนำเข้า + บุฟเฟ่ต์เหลือทิ้ง = คาร์บอนจากอาหาร×ขยะอาหารพุ่งสูง อาหารเหลือคือคาร์บอนที่เสียเปล่าที่สุด"}},
+      {emo:"🍱",b:"อาหารกล่องจำนวนพอดี นับตามลงทะเบียน",s:"สั่งตามยอดจริง ลดของเหลือ",pts:110,
+       fb:{emo:"👍",cls:"mid",msg:"ดี! สั่งตามยอดลงทะเบียนจริงช่วยลดขยะอาหารได้มาก — เลือกบรรจุภัณฑ์ใช้ซ้ำ/ย่อยสลายได้จะยิ่งดี"}},
+      {emo:"🥗",b:"เมนูวัตถุดิบท้องถิ่นตามฤดูกาล ปริมาณพอดี",s:"ลดทั้งขนส่งวัตถุดิบและของเหลือ",pts:150,
+       fb:{emo:"🌟",cls:"good",msg:"เยี่ยม! วัตถุดิบท้องถิ่นลดคาร์บอนจากการขนส่ง เมนูตามฤดูกาล + ปริมาณพอดี = สูตรอาหารงานยั่งยืนตัวจริง"}},
+    ]
+  },
+  {
+    title:"🏗️ ภารกิจ 3 · บูทและวัสดุตกแต่ง",
+    sub:"ถึงเวลาสร้างบูทนิทรรศการ — วัสดุก่อสร้างบูทคือคาร์บอนก้อนใหญ่ที่คนมักลืมเก็บข้อมูล",
+    opts:[
+      {emo:"🪧",b:"โครงไม้อัด + ป้ายไวนิลพิมพ์ใหม่ ใช้ครั้งเดียวทิ้ง",s:"ออกแบบใหม่ทุกงาน",pts:40,
+       fb:{emo:"💸",cls:"bad",msg:"บูทใช้ครั้งเดียวทิ้งสร้างทั้งคาร์บอนและขยะก่อสร้างมหาศาล — และมักตกหล่นจากการเก็บข้อมูลคาร์บอนด้วย!"}},
+      {emo:"🔁",b:"โครงบูทระบบโมดูลาร์ ถอดประกอบใช้ซ้ำได้",s:"เปลี่ยนเฉพาะกราฟิก",pts:150,
+       fb:{emo:"🌟",cls:"good",msg:"เพอร์เฟกต์! บูทโมดูลาร์ใช้ซ้ำได้หลายงาน คาร์บอนต่อการใช้งานต่ำลงเรื่อยๆ ทุกครั้งที่ใช้ซ้ำ"}},
+      {emo:"📦",b:"ตกแต่งด้วยวัสดุรีไซเคิล/กระดาษลัง",s:"สวยแบบ eco และรีไซเคิลต่อได้",pts:110,
+       fb:{emo:"👍",cls:"mid",msg:"ดีมาก! วัสดุรีไซเคิลช่วยลดคาร์บอนจากวัสดุใหม่ — จับคู่กับโครงใช้ซ้ำจะครบสูตรที่สุด"}},
+    ]
+  }
+];
+
+// รูป 3 ชิ้นที่ไม่มี emoji ตรงตัว → วาด SVG ให้ตรงกับชื่อ
+const SVG_PET = '<svg viewBox="0 0 64 64" style="width:1.15em;height:1.15em;vertical-align:-0.15em"><rect x="26" y="3" width="12" height="7" rx="2" fill="#065DED"/><path d="M27 10h10v5c5 3 8 8 8 14v24c0 5-4 8-9 8H26c-5 0-9-3-9-8V29c0-6 3-11 8-14v-5z" fill="#DDEEFF" stroke="#9CC6EF" stroke-width="2"/><path d="M18 41v12c0 4 3 7 8 7h12c5 0 8-3 8-7V41z" fill="#8FC9F7" opacity=".7"/><rect x="19" y="28" width="26" height="10" fill="#fff" stroke="#9CC6EF"/><text x="32" y="36" font-size="8" text-anchor="middle" fill="#065DED" font-family="Inter,sans-serif" font-weight="700">PET</text></svg>';
+const SVG_CUP = '<svg viewBox="0 0 64 64" style="width:1.15em;height:1.15em;vertical-align:-0.15em"><rect x="33" y="1" width="4" height="13" rx="2" transform="rotate(10 35 7)" fill="#8A94A6"/><path d="M17 14h30l-2 8H19z" fill="#B7BFCC"/><path d="M19 22h26l-3.6 36c-.2 2-2 4-4 4H26.6c-2 0-3.8-2-4-4z" fill="#F4EBDD" stroke="#D8C9B2" stroke-width="1.5"/><path d="M21.5 32h21l-1.6 14H23.1z" fill="#8B5E3C"/><path d="M45 24c2.5 3.5 1.5 7-.8 9.5" stroke="#8B5E3C" stroke-width="2.4" fill="none" opacity=".75" stroke-linecap="round"/><circle cx="46.5" cy="38" r="2.6" fill="#8B5E3C" opacity=".55"/></svg>';
+const SVG_RICEBOX = '<svg viewBox="0 0 64 64" style="width:1.15em;height:1.15em;vertical-align:-0.15em"><path d="M14 25L19 9h26l5 16z" fill="#E8EEF7" stroke="#8FA3C0" stroke-width="2.5"/><line x1="22" y1="14" x2="42" y2="14" stroke="#B9C8DE" stroke-width="2"/><rect x="9" y="25" width="46" height="7" rx="3" fill="#CBD8EA" stroke="#8FA3C0" stroke-width="2"/><path d="M12 32h40l-3.2 19c-.5 3-3 5-6 5H21.2c-3 0-5.5-2-6-5z" fill="#F4F8FE" stroke="#8FA3C0" stroke-width="2.5"/><path d="M16.5 41c0-4.5 5-7 10.5-7s10.5 2.5 10.5 7c0 2.2-1.8 3.8-4.2 4.4H20.7c-2.4-.6-4.2-2.2-4.2-4.4z" fill="#FFFDF4" stroke="#D9CBA4" stroke-width="1.8"/><ellipse cx="22" cy="38.5" rx="1.6" ry="1" fill="#fff" stroke="#D9CBA4" stroke-width=".7"/><ellipse cx="28" cy="36.8" rx="1.6" ry="1" fill="#fff" stroke="#D9CBA4" stroke-width=".7"/><ellipse cx="31" cy="40.5" rx="1.6" ry="1" fill="#fff" stroke="#D9CBA4" stroke-width=".7"/><ellipse cx="24.5" cy="42.5" rx="1.6" ry="1" fill="#fff" stroke="#D9CBA4" stroke-width=".7"/><ellipse cx="44" cy="46" rx="1.5" ry=".9" fill="#FFFDF4" stroke="#D9CBA4" stroke-width=".7"/><g transform="rotate(22 45 41)"><ellipse cx="45" cy="36.5" rx="3.2" ry="4.6" fill="#E3EAF6" stroke="#8FA3C0" stroke-width="1.6"/><rect x="43.7" y="40.5" width="2.6" height="12.5" rx="1.3" fill="#E3EAF6" stroke="#8FA3C0" stroke-width="1.2"/></g></svg>';
+
+const SORT_ITEMS = [
+  {emo:SVG_PET,name:"ขวดน้ำพลาสติก PET",bin:"recycle"},
+  {emo:SVG_RICEBOX,name:"ข้าวกล่องกินเหลือ (เศษอาหาร)",bin:"organic"},
+  {emo:"🔋",name:"แบตเตอรี่ถ่านไมค์",bin:"hazard"},
+  {emo:"🥫",name:"กระป๋องเครื่องดื่มอะลูมิเนียม",bin:"recycle"},
+  {emo:SVG_CUP,name:"แก้วกาแฟใช้แล้ว (เปื้อนเครื่องดื่ม)",bin:"general"},
+  {emo:"📄",name:"กระดาษโบรชัวร์สะอาด",bin:"recycle"},
+];
+const BIN_NAME = {recycle:"🟡 รีไซเคิล",organic:"🟢 เศษอาหาร",general:"🔵 ขยะทั่วไป",hazard:"🔴 ขยะอันตราย"};
+
+const COLLECT_GOOD = [
+  {emo:"🧾",lab:"ฟอร์มการเดินทาง"},{emo:"⚡",lab:"หน่วยไฟฟ้าที่ใช้"},{emo:"💧",lab:"มิเตอร์น้ำประปา"},
+  {emo:"⚖️",lab:"ชั่งน้ำหนักขยะ"},{emo:"🍛",lab:"จำนวนชุดอาหาร"},{emo:"🏨",lab:"คืนที่พักทีมงาน"},
+  {emo:"🚚",lab:"ระยะขนส่งของ"},{emo:"🏗️",lab:"วัสดุก่อสร้างบูท"},
+];
+const COLLECT_BAD = [
+  {emo:"🤳",lab:"เซลฟี่หน้าบูท"},{emo:"☕",lab:"พักกินกาแฟ"},{emo:"🎮",lab:"เล่นเกมมือถือ"},{emo:"😴",lab:"งีบก่อนนะ"},
+];
+
+const QUIZ_POOL = [
+  {q:"ในงานอีเวนต์ขนาดใหญ่ กิจกรรมใดมักปล่อยคาร์บอนมากที่สุด?",
+   opts:["การเดินทางของผู้เข้าร่วมงาน","แอร์ในฮอลล์","ป้ายไฟ LED","เสียงเพลงบนเวที"],ans:0,
+   why:"จากข้อมูลงานจริง การเดินทาง (โดยเฉพาะเที่ยวบิน) มักเกิน 50% ของคาร์บอนทั้งงาน"},
+  {q:"\"Scope 3\" ในการคำนวณคาร์บอนของงานอีเวนต์ หมายถึงอะไร?",
+   opts:["การปล่อยทางอ้อมอื่นๆ เช่น การเดินทาง ขยะ น้ำ","ไฟฟ้าที่ใช้ในงาน","การเผาไหม้เชื้อเพลิงในงาน","คาร์บอนของปีที่ 3"],ans:0,
+   why:"Scope 1 = ปล่อยตรงในงาน · Scope 2 = ไฟฟ้าที่ซื้อ · Scope 3 = ทางอ้อมอื่นๆ ซึ่งมักใหญ่ที่สุด"},
+  {q:"\"Carbon Neutral Event\" คืองานแบบไหน?",
+   opts:["งานที่ชดเชยคาร์บอนเท่าที่ปล่อย จนสุทธิเป็นศูนย์","งานที่ไม่ใช้ไฟฟ้าเลย","งานที่จัดกลางแจ้งเท่านั้น","งานที่ไม่มีผู้เข้าร่วม"],ans:0,
+   why:"วัดคาร์บอนทั้งงาน → ลดเท่าที่ทำได้ → ชดเชยส่วนที่เหลือด้วยคาร์บอนเครดิตจนเป็นศูนย์"},
+  {q:"หน่วยงานไทยที่ให้การรับรอง Carbon Neutral Event คือใคร?",
+   opts:["อบก. (TGO)","กรมสรรพากร","กสทช.","การท่าเรือ"],ans:0,
+   why:"องค์การบริหารจัดการก๊าซเรือนกระจก (TGO) คือผู้รับรอง Carbon Neutral Event ในไทย"},
+  {q:"ข้อมูลใด \"จำเป็น\" ต่อการคำนวณคาร์บอนฟุตพริ้นท์ของงาน?",
+   opts:["ถูกทุกข้อ!","การเดินทางของผู้ร่วมงาน","หน่วยไฟฟ้า-น้ำที่ใช้","ปริมาณอาหารและขยะ"],ans:0,
+   why:"ต้องเก็บให้ครบทุกด้าน — ข้อมูลที่ตกหล่นคือคาร์บอนที่มองไม่เห็น"},
+  {q:"วิธีที่ดีที่สุดในการลดคาร์บอนจากอาหารในงานคือ?",
+   opts:["สั่งปริมาณพอดี + ใช้วัตถุดิบท้องถิ่น","สั่งเผื่อไว้เยอะๆ","ใช้ของนำเข้าพรีเมียม","แจกกล่องโฟม"],ans:0,
+   why:"อาหารเหลือทิ้ง = คาร์บอนเสียเปล่า และวัตถุดิบท้องถิ่นลดคาร์บอนจากการขนส่ง"},
+];
+
+/* ═══════════ STATE ═══════════ */
+const TOTAL_STEPS = 7; // 3 choice + sort + collect + quiz(นับรวม 1) + result
+let G = null;
+function newGame(name,org){
+  return {name,org,score:0,step:0,
+    choiceIdx:0,sortIdx:0,sortScore:0,sortStart:0,
+    quizIdx:0,quizSet:[],collectScore:0};
+}
+
+/* ═══════════ NAV / HELPERS ═══════════ */
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  $(id).classList.add('active');
+}
+function setHud(prefix,stepLabel,progFrac){
+  $(prefix+'-step').textContent = stepLabel;
+  $(prefix+'-score').textContent = G.score;
+  $(prefix+'-prog').style.width = Math.round(progFrac*100)+'%';
+}
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+
+let fbTimer=null;
+function showFeedback(fb,pts,next){
+  $('fb-emo').textContent = fb.emo;
+  const p=$('fb-pts'); p.textContent = '+'+pts+' คะแนน'; p.className='fb-pts '+fb.cls;
+  $('fb-msg').textContent = fb.msg;
+  $('feedback').classList.add('show');
+  clearTimeout(fbTimer);
+  fbTimer=setTimeout(()=>{ $('feedback').classList.remove('show'); next(); },2600);
+}
+
+/* ═══════════ FLOW ═══════════ */
+function goName(){ $('in-name').value=''; $('in-org').value=''; show('scr-name'); }
+function startGame(){
+  const name = $('in-name').value.trim();
+  if(!name){ $('in-name').focus(); $('in-name').placeholder='กรอกชื่อเล่นก่อนนะครับ 🙏'; return; }
+  G = newGame(name, $('in-org').value.trim());
+  G.quizSet = shuffle(QUIZ_POOL).slice(0,3);
+  showChoice(0);
+}
+
+/* ── choice missions ── */
+function showChoice(i){
+  G.choiceIdx=i;
+  const m = CHOICE_MISSIONS[i];
+  setHud('ch','ภารกิจ '+(i+1)+' / 6',(i)/TOTAL_STEPS);
+  $('ch-title').textContent = m.title;
+  $('ch-sub').textContent = m.sub;
+  const box=$('ch-opts'); box.innerHTML='';
+  shuffle(m.opts).forEach(o=>{
+    const d=document.createElement('div'); d.className='choice';
+    d.innerHTML=`<div class="emo">${o.emo}</div><div class="txt"><b>${o.b}</b><small>${o.s}</small></div>`;
+    d.onclick=()=>{ G.score+=o.pts; $('ch-score').textContent=G.score;
+      showFeedback(o.fb,o.pts,()=>{ i+1<CHOICE_MISSIONS.length ? showChoice(i+1) : startSort(); });
+    };
+    box.appendChild(d);
+  });
+  show('scr-choice');
+}
+
+/* ── waste sort ── */
+let sortSeq=[];
+function startSort(){
+  sortSeq = shuffle(SORT_ITEMS);
+  G.sortIdx=0; G.sortStart=Date.now(); sortLock=false; $('sort-flash').className='';
+  setHud('so','ภารกิจ 4 / 6',3/TOTAL_STEPS);
+  show('scr-sort'); renderSortItem();
+}
+function renderSortItem(){
+  const it=sortSeq[G.sortIdx];
+  const el=$('sort-item');
+  el.querySelector('.emo').innerHTML=it.emo;
+  el.querySelector('.name').textContent=it.name;
+  el.querySelector('.left').textContent='ชิ้นที่ '+(G.sortIdx+1)+' จาก '+sortSeq.length;
+}
+let sortLock=false;
+function dropBin(bin){
+  if(sortLock) return; sortLock=true;
+  const it=sortSeq[G.sortIdx];
+  const fl=$('sort-flash');
+  const ok=bin===it.bin;
+  if(ok){ G.score+=30; fl.innerHTML='✓ ถูกต้อง +30'; fl.className='on good'; }
+  else{ fl.innerHTML='✗ '+it.emo+' ต้องลง '+BIN_NAME[it.bin]; fl.className='on bad'; }
+  $('so-score').textContent=G.score;
+  // ค้างเฉลยไว้ให้อ่านก่อน แล้วค่อยขึ้นชิ้นถัดไป (ตอบผิดค้างนานกว่า)
+  const hold=ok?700:1400;
+  setTimeout(()=>{
+    fl.className='';
+    G.sortIdx++;
+    if(G.sortIdx<sortSeq.length){ renderSortItem(); sortLock=false; }
+    else{
+      const secs=(Date.now()-G.sortStart)/1000;
+      const bonus=Math.max(0,Math.min(20,Math.round(20-(secs-18))));
+      G.score+=bonus;
+      sortLock=false;
+      startCollect();
+    }
+  },hold);
+}
+
+/* ── data collect ── */
+let coTimers=[],coEnd=null,coRAF=null;
+function startCollect(){
+  setHud('co','ภารกิจ 5 / 6',4/TOTAL_STEPS);
+  $('co-score').textContent=G.score;
+  const grid=$('collect-grid'); grid.innerHTML='';
+  for(let i=0;i<12;i++){ const c=document.createElement('div'); c.className='cell'; c.dataset.idx=i; grid.appendChild(c); }
+  show('scr-collect');
+  G.collectScore=0;
+  const DURATION=15000; coEnd=Date.now()+DURATION;
+  (function tick(){
+    const left=coEnd-Date.now();
+    $('co-timer').style.width=Math.max(0,left/DURATION*100)+'%';
+    if(left<=0){ stopCollect(); return; }
+    coRAF=requestAnimationFrame(tick);
+  })();
+  coTimers.push(setInterval(spawnIcon,900));
+  spawnIcon(); spawnIcon();
+}
+function spawnIcon(){
+  const cells=[...document.querySelectorAll('#collect-grid .cell')].filter(c=>!c.dataset.item);
+  if(!cells.length) return;
+  const cell=cells[Math.floor(Math.random()*cells.length)];
+  const good=Math.random()<0.65;
+  const pool=good?COLLECT_GOOD:COLLECT_BAD;
+  const it=pool[Math.floor(Math.random()*pool.length)];
+  cell.dataset.item=good?'good':'bad';
+  cell.innerHTML=`<div class="c-emo">${it.emo}</div><div class="c-lab">${it.lab}</div>`;
+  cell.classList.add('pop');
+  cell.onclick=()=>{
+    if(!cell.dataset.item) return;
+    if(cell.dataset.item==='good'){ G.collectScore=Math.min(200,G.collectScore+20); cell.classList.add('hit-good'); }
+    else{ G.collectScore=Math.max(0,G.collectScore-10); cell.classList.add('hit-bad'); }
+    $('co-score').textContent=G.score+G.collectScore;
+    cell.dataset.item=''; cell.onclick=null;
+    setTimeout(()=>{cell.innerHTML='';cell.className='cell';},220);
+  };
+  setTimeout(()=>{ if(cell.dataset.item){ cell.dataset.item=''; cell.onclick=null; cell.innerHTML=''; cell.className='cell'; } },2600);
+}
+function stopCollect(){
+  coTimers.forEach(clearInterval); coTimers=[]; cancelAnimationFrame(coRAF);
+  G.score+=G.collectScore;
+  startQuiz(0);
+}
+
+/* ── quiz ── */
+let qzInt=null,qzDeadline=0,qzReadTO=null;
+const QZ_READ_MS=3500, QZ_ANSWER_MS=12000;
+function startQuiz(i){
+  G.quizIdx=i;
+  const item=G.quizSet[i];
+  setHud('qz','คำถาม '+(i+1)+' / 3 · ภารกิจ 6',(5+i/3)/TOTAL_STEPS);
+  $('qz-q').textContent=item.q;
+  // เฟสอ่านคำถาม: ยังไม่โชว์ตัวเลือก ยังไม่จับเวลา
+  const box=$('qz-opts');
+  box.innerHTML='<div class="qz-read">👀 อ่านคำถามก่อน… ตัวเลือกจะแสดงใน <b class="num">3.5</b> วิ</div>';
+  $('qz-timer').style.width='100%';
+  show('scr-quiz');
+  clearInterval(qzInt); clearTimeout(qzReadTO);
+  const readEnd=Date.now()+QZ_READ_MS;
+  qzInt=setInterval(()=>{
+    const b=box.querySelector('.qz-read b');
+    if(b) b.textContent=Math.max(0,(readEnd-Date.now())/1000).toFixed(1);
+  },100);
+  qzReadTO=setTimeout(()=>{ clearInterval(qzInt); revealQuizOptions(item); },QZ_READ_MS);
+}
+function revealQuizOptions(item){
+  const box=$('qz-opts'); box.innerHTML='';
+  const order=shuffle(item.opts.map((t,idx)=>({t,idx})));
+  order.forEach(o=>{
+    const b=document.createElement('button'); b.className='qopt'; b.textContent=o.t;
+    b.onclick=()=>answerQuiz(b,o.idx===item.ans,item);
+    box.appendChild(b);
+  });
+  qzDeadline=Date.now()+QZ_ANSWER_MS;
+  clearInterval(qzInt);
+  qzInt=setInterval(()=>{
+    const left=qzDeadline-Date.now();
+    $('qz-timer').style.width=Math.max(0,left/QZ_ANSWER_MS*100)+'%';
+    if(left<=0){ clearInterval(qzInt); answerQuiz(null,false,item); }
+  },100);
+}
+function answerQuiz(btn,correct,item){
+  clearInterval(qzInt);
+  document.querySelectorAll('.qopt').forEach(b=>b.onclick=null);
+  let pts=0;
+  if(correct){
+    const leftFrac=Math.max(0,(qzDeadline-Date.now())/QZ_ANSWER_MS);
+    pts=60+Math.round(40*leftFrac);
+    G.score+=pts; btn.classList.add('correct');
+  }else if(btn){ btn.classList.add('wrong'); }
+  $('qz-score').textContent=G.score;
+  const fb=correct?{emo:"🎯",cls:"good",msg:item.why}:{emo:"💡",cls:"bad",msg:"เฉลย: "+item.opts[item.ans]+" — "+item.why};
+  showFeedback(fb,pts,()=>{ G.quizIdx+1<3 ? startQuiz(G.quizIdx+1) : showResult(); });
+}
+
+/* ═══════════ RESULT + BACKEND ═══════════ */
+const LS_SCORES='cmice_game_scores', LS_QUEUE='cmice_game_queue', LS_QR='cmice_game_qr', LS_EVENT='cmice_game_event',
+      LS_QRMODE='cmice_game_qrmode', LS_QRLINK='cmice_game_qrlink';
+
+function tierOf(s){
+  if(s>=950) return "🏅 carbonMICE MASTER";
+  if(s>=750) return "🦸 CARBON HERO";
+  if(s>=500) return "🌿 GREEN ORGANIZER";
+  return "🌱 ECO ROOKIE";
+}
+let cdInt=null;
+function showResult(){
+  show('scr-result');
+  $('res-score').textContent=G.score;
+  $('res-name').textContent=G.name+(G.org?' · '+G.org:'');
+  $('res-tier').textContent=tierOf(G.score);
+  applyQrDest();
+  $('res-rank').textContent='กำลังบันทึกคะแนน…';
+  renderQR();
+  submitScore();
+  let cd=45; $('res-cd').textContent=cd;
+  clearInterval(cdInt);
+  cdInt=setInterval(()=>{ cd--; $('res-cd').textContent=cd; if(cd<=0) resetToSplash(); },1000);
+}
+function resetToSplash(){ clearInterval(cdInt); refreshTop5Splash(); show('scr-splash'); }
+
+/* local score store (fallback + merge) */
+function localScores(){ try{return JSON.parse(localStorage.getItem(LS_SCORES)||'[]')}catch(e){return[]} }
+function saveLocalScore(rec){
+  const a=localScores(); a.push(rec);
+  a.sort((x,y)=>y.score-x.score);
+  localStorage.setItem(LS_SCORES,JSON.stringify(a.slice(0,500)));
+}
+
+async function api(action,payload){
+  if(!CFG.API_URL) throw new Error('no api');
+  const res=await fetch(CFG.API_URL,{method:'POST',redirect:'follow',
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body:JSON.stringify(Object.assign({action},payload||{}))});
+  return res.json();
+}
+async function apiGet(params){
+  if(!CFG.API_URL) throw new Error('no api');
+  const u=new URL(CFG.API_URL); Object.entries(params).forEach(([k,v])=>u.searchParams.set(k,v));
+  const res=await fetch(u,{redirect:'follow'});
+  return res.json();
+}
+
+async function submitScore(){
+  const rec={name:G.name,org:G.org,score:G.score,ts:new Date().toISOString()};
+  saveLocalScore(rec);
+  try{
+    const r=await api('submitScore',rec);
+    $('res-rank').textContent='คุณอยู่อันดับที่ '+r.rank+' จากผู้เล่น '+r.total+' คน';
+    renderBoard('res-top5',r.top5,rec);
+    flushQueue();
+  }catch(e){
+    // ออนไลน์ไม่ได้ → เข้าคิวรอ sync + จัดอันดับจาก local
+    const q=JSON.parse(localStorage.getItem(LS_QUEUE)||'[]'); q.push(rec);
+    localStorage.setItem(LS_QUEUE,JSON.stringify(q));
+    const all=localScores();
+    const rank=all.findIndex(x=>x.ts===rec.ts&&x.name===rec.name)+1;
+    $('res-rank').textContent='อันดับที่ '+rank+' (เครื่องนี้ · รอเชื่อมต่อเซิร์ฟเวอร์)';
+    renderBoard('res-top5',all.slice(0,5),rec);
+  }
+}
+async function flushQueue(){
+  const q=JSON.parse(localStorage.getItem(LS_QUEUE)||'[]');
+  if(!q.length) return;
+  try{
+    for(const rec of q){ await api('submitScore',rec); }
+    localStorage.setItem(LS_QUEUE,'[]');
+  }catch(e){/* คราวหน้า */}
+}
+function renderBoard(elId,rows,me){
+  const el=$(elId); el.innerHTML='';
+  (rows||[]).forEach((r,i)=>{
+    const d=document.createElement('div'); d.className='row';
+    if(me&&r.name===me.name&&r.score===me.score) d.classList.add('me');
+    d.innerHTML=`<span>${['🥇','🥈','🥉','4.','5.'][i]||(i+1)+'.'} ${esc(r.name)}${r.org?' <small style="color:var(--slate)">· '+esc(r.org)+'</small>':''}</span><b class="num">${r.score}</b>`;
+    el.appendChild(d);
+  });
+  if(!rows||!rows.length) el.innerHTML='<div class="row"><span>ยังไม่มีผู้เล่น</span></div>';
+}
+function esc(s){return String(s||'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]))}
+
+async function refreshTop5Splash(){
+  try{
+    const r=await apiGet({action:'leaderboard',limit:5});
+    renderBoard('splash-top5',r.top);
+    if(r.eventName) localStorage.setItem(LS_EVENT,r.eventName);
+  }catch(e){ renderBoard('splash-top5',localScores().slice(0,5)); }
+}
+
+/* ปลายทาง QR: โหมด travel = ฟอร์มเดินทาง carbonMICE · โหมด web = เว็บอื่น (FB/landing) */
+function applyQrDest(){
+  const mode=localStorage.getItem(LS_QRMODE)||'travel';
+  const link=localStorage.getItem(LS_QRLINK)||'';
+  const ev=localStorage.getItem(LS_EVENT)||CFG.EVENT_NAME||'carbonMICE';
+  if(mode==='web'){
+    $('qr-head').textContent='📱 ติดตามกันต่อได้เลย!';
+    $('qr-desc').innerHTML='สแกน QR หรือแตะปุ่มด้านล่าง<br>เพื่อไปที่ <b>'+esc(ev)+'</b>';
+  }else{
+    $('qr-head').textContent='📱 ภารกิจจริงเริ่มที่คุณ!';
+    $('qr-desc').innerHTML='สแกน QR เพื่อกรอก <b>ข้อมูลการเดินทางของคุณ</b><br>ให้งาน <b>'+esc(ev)+'</b> คำนวณคาร์บอนฟุตพริ้นท์ได้ครบถ้วน';
+  }
+  const btn=$('qr-linkbtn');
+  if(link){
+    btn.href=link; btn.style.display='block';
+    btn.textContent=mode==='web'?'🔗 เปิดลิงก์ '+ev:'🔗 เปิดฟอร์มกรอกข้อมูลการเดินทาง';
+  }else btn.style.display='none';
+}
+async function loadRemoteConfig(){
+  try{
+    const r=await apiGet({action:'config'});
+    if(r.eventName!==undefined) localStorage.setItem(LS_EVENT,r.eventName||'');
+    localStorage.setItem(LS_QRMODE,r.qrMode||'travel');
+    localStorage.setItem(LS_QRLINK,r.qrLink||'');
+  }catch(e){/* ใช้ค่า cache เดิม */}
+}
+
+/* QR: fetch จาก backend ครั้งแรก แล้ว cache ใน localStorage */
+async function renderQR(){
+  const holder=$('qr-holder');
+  let data=localStorage.getItem(LS_QR)||CFG.QR_FALLBACK||'';
+  if(data){ holder.innerHTML='<img src="'+data+'" alt="QR">'; }
+  try{
+    const r=await apiGet({action:'qr'});
+    if(r.qr){ localStorage.setItem(LS_QR,r.qr); holder.innerHTML='<img src="'+r.qr+'" alt="QR">'; }
+  }catch(e){/* ใช้ cache */}
+}
+
+/* idle → กลับหน้าแรก (ยกเว้นตอนอยู่หน้าแรกอยู่แล้ว) */
+let idleT=null;
+function armIdle(){
+  clearTimeout(idleT);
+  idleT=setTimeout(()=>{
+    const active=document.querySelector('.screen.active');
+    if(active&&active.id!=='scr-splash'&&active.id!=='scr-result') resetToSplash();
+  },90000);
+}
+['pointerdown','keydown'].forEach(ev=>document.addEventListener(ev,armIdle));
+armIdle();
+
+refreshTop5Splash();
+loadRemoteConfig();
+renderQR();
+</script>
+</body>
+</html>

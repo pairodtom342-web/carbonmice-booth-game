@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>carbonMICE — วงล้อหมุนลุ้นรางวัล</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --blue:#065DED; --mint:#35E5C0; --navy:#1A1A2E; --deep-mint:#0FAE8E;
+  --slate:#8A94A6; --bg:#F4F7FB; --sky:#EAF2FF; --mist:#E8FFF9; --line:#EAEEF5;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Sarabun','Inter',sans-serif;color:var(--navy);background:var(--bg);
+  display:flex;justify-content:center;align-items:center}
+#stage{position:relative;width:100vw;height:100vh;max-width:calc(100vh*9/16);
+  background:radial-gradient(120% 55% at 50% -8%,var(--sky) 0%,var(--bg) 55%);
+  overflow:hidden;display:flex;flex-direction:column;align-items:center;padding:3.4vh 5% 3vh}
+.num{font-family:'Inter','Sarabun',sans-serif}
+
+.topbar{width:100%;display:flex;justify-content:space-between;align-items:center;margin-bottom:1.6vh}
+.topbar a{font-size:clamp(14px,1.9vh,18px);color:var(--blue);text-decoration:none;font-weight:700;
+  background:#fff;border:1px solid var(--line);border-radius:99px;padding:.9vh 16px;box-shadow:0 3px 10px rgba(20,30,60,.05)}
+.topbar img{height:4.4vh;max-height:48px;object-fit:contain}
+
+.head{text-align:center;margin-bottom:1.4vh}
+.head h1{font-size:clamp(22px,3.2vh,32px);font-weight:800;line-height:1.2}
+.head h1 span{color:var(--deep-mint)}
+.head p{font-size:clamp(13px,1.8vh,17px);color:var(--slate);margin-top:.4vh}
+
+/* ── wheel ── */
+.wheel-wrap{position:relative;width:min(86vw,calc(86vh*9/16));aspect-ratio:1;margin:1vh auto 0;flex:0 0 auto}
+.pointer{position:absolute;top:-1.5%;left:50%;transform:translateX(-50%);z-index:6;
+  width:0;height:0;border-left:18px solid transparent;border-right:18px solid transparent;
+  border-top:30px solid var(--navy);filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+.pointer::after{content:"";position:absolute;top:-30px;left:-8px;width:16px;height:16px;border-radius:50%;
+  background:var(--navy)}
+#wheel{width:100%;height:100%;border-radius:50%;
+  box-shadow:0 12px 40px rgba(20,30,60,.22),0 0 0 10px #fff,0 0 0 13px var(--line);
+  transition:transform 5.4s cubic-bezier(.16,.84,.3,1)}
+.hub{position:absolute;top:50%;left:50%;width:20%;height:20%;transform:translate(-50%,-50%);
+  border-radius:50%;background:#fff;box-shadow:0 4px 14px rgba(20,30,60,.2);z-index:5;
+  display:flex;align-items:center;justify-content:center;font-size:2.4vh}
+.hub img{width:78%}
+
+/* ── spin button ── */
+.spin-btn{margin-top:2.6vh;border:none;border-radius:22px;font-family:inherit;font-weight:800;cursor:pointer;
+  min-height:66px;font-size:clamp(19px,2.7vh,27px);padding:1.7vh 40px;color:#fff;width:88%;
+  background:linear-gradient(135deg,#065DED,#0FAE8E);box-shadow:0 8px 26px rgba(6,93,237,.32);
+  transition:transform .08s}
+.spin-btn:active{transform:scale(.97)}
+.spin-btn:disabled{opacity:.5;cursor:default;box-shadow:none}
+.spin-btn.pulse{animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
+.hint{margin-top:1.2vh;font-size:clamp(12px,1.6vh,15px);color:var(--slate);text-align:center;min-height:2.2vh}
+
+/* ── result modal ── */
+#modal{position:absolute;inset:0;z-index:30;display:none;justify-content:center;align-items:center;padding:8%;
+  background:rgba(26,26,46,.5)}
+#modal.show{display:flex}
+.modal-card{background:#fff;border-radius:26px;padding:4.4vh 26px;text-align:center;width:100%;
+  box-shadow:0 24px 70px rgba(20,30,60,.35);position:relative;animation:pop .28s cubic-bezier(.2,1.3,.5,1)}
+@keyframes pop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+.modal-emo{font-size:clamp(56px,9vh,86px);line-height:1;margin-bottom:1vh}
+.modal-emo.spin{display:inline-block;animation:wob 1.1s ease-in-out infinite}
+@keyframes wob{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(8deg)}}
+.modal-title{font-size:clamp(23px,3.4vh,34px);font-weight:800;margin-bottom:.8vh;line-height:1.25}
+.modal-prize{font-size:clamp(20px,2.9vh,28px);font-weight:800;color:var(--deep-mint);
+  background:var(--mist);border:2px dashed var(--mint);border-radius:16px;padding:1.6vh 14px;margin:1.4vh 0;line-height:1.3}
+.modal-msg{font-size:clamp(15px,2.1vh,20px);color:var(--slate);line-height:1.5;margin-bottom:2vh}
+.modal-btn{border:none;border-radius:18px;font-family:inherit;font-weight:800;cursor:pointer;
+  min-height:60px;font-size:clamp(17px,2.4vh,22px);padding:1.5vh 24px;width:100%;transition:transform .08s}
+.modal-btn:active{transform:scale(.97)}
+.mb-primary{background:var(--blue);color:#fff;box-shadow:0 6px 20px rgba(6,93,237,.3)}
+.mb-mint{background:var(--mint);color:var(--navy);box-shadow:0 6px 20px rgba(53,229,192,.35)}
+.win .modal-title{color:var(--deep-mint)}
+.lose .modal-title{color:var(--slate)}
+
+#fx{position:absolute;inset:0;pointer-events:none;z-index:25}
+.tearcol{position:absolute;top:-6%;font-size:26px;animation:fall linear forwards;opacity:.85}
+@keyframes fall{to{transform:translateY(120vh);opacity:0}}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="topbar">
+    <a href="index.html">🏠 หน้าแรก</a>
+    <img src="assets/logo.png" alt="carbonMICE">
+  </div>
+  <div class="head">
+    <h1>🎡 วงล้อ<span>ลุ้นรางวัล</span></h1>
+    <p>แตะปุ่มด้านล่างเพื่อหมุน · ลุ้นของรางวัลจาก carbonMICE</p>
+  </div>
+
+  <div class="wheel-wrap">
+    <div class="pointer"></div>
+    <svg id="wheel" viewBox="0 0 300 300" aria-label="วงล้อรางวัล"></svg>
+    <div class="hub"><img src="assets/logo.png" alt=""></div>
+  </div>
+
+  <button class="spin-btn pulse" id="spinBtn" onclick="spin()">🎯 หมุนวงล้อ!</button>
+  <div class="hint" id="hint"></div>
+
+  <canvas id="fx"></canvas>
+  <div id="modal"><div class="modal-card" id="modalCard">
+    <div class="modal-emo" id="mEmo">🎉</div>
+    <div class="modal-title" id="mTitle"></div>
+    <div class="modal-prize" id="mPrize"></div>
+    <div class="modal-msg" id="mMsg"></div>
+    <button class="modal-btn mb-primary" id="mBtn" onclick="closeModal()">หมุนอีกครั้ง 🔄</button>
+  </div></div>
+</div>
+
+<script src="config.js"></script>
+<script>
+"use strict";
+const CFG=window.GAME_CONFIG||{};
+const $=id=>document.getElementById(id);
+
+/* ── ของรางวัลเริ่มต้น (แก้ได้จากหน้า Admin) ──
+   type: win = ได้รางวัล · again = หมุนใหม่ · lose = ไม่ได้/ครั้งหน้ามาใหม่
+   weight = โอกาสออก (มาก = ออกบ่อย) */
+const DEFAULT_PRIZES=[
+  {label:"ของที่ระลึก\ncarbonMICE", type:"win",   weight:2},
+  {label:"หมุนอีกครั้ง!",           type:"again", weight:2},
+  {label:"ต้นไม้ฟอกอากาศ",          type:"win",   weight:2},
+  {label:"ครั้งหน้า\nมาใหม่นะ",      type:"lose",  weight:3},
+  {label:"ปากกา Eco",              type:"win",   weight:2},
+  {label:"หมุนอีกครั้ง!",           type:"again", weight:2},
+  {label:"กระเป๋าผ้า\ncarbonMICE",  type:"win",   weight:2},
+  {label:"พลาดนิดเดียว!",           type:"lose",  weight:3},
+];
+// จานสีตามแบรนด์ (สลับให้อ่านง่าย)
+const SEG_COLORS=["#065DED","#35E5C0","#0FAE8E","#4C8DFF","#1A1A2E","#8FE9D8","#2A6FE0","#12C9A6"];
+const TEXT_ON=["#fff","#06382F","#fff","#fff","#fff","#06382F","#fff","#06382F"];
+
+let PRIZES=DEFAULT_PRIZES.slice();
+const LS_WHEEL='cmice_wheel_prizes';
+
+function loadPrizes(){
+  try{const c=JSON.parse(localStorage.getItem(LS_WHEEL)||'null'); if(Array.isArray(c)&&c.length>=2) PRIZES=c;}catch(e){}
+  if(CFG.WHEEL_PRIZES&&Array.isArray(CFG.WHEEL_PRIZES)&&!localStorage.getItem(LS_WHEEL)) PRIZES=CFG.WHEEL_PRIZES;
+  buildWheel();
+}
+async function syncPrizes(){
+  if(!CFG.API_URL) return;
+  try{
+    const u=new URL(CFG.API_URL); u.searchParams.set('action','config');
+    const r=await (await fetch(u,{redirect:'follow'})).json();
+    if(r.wheelPrizes){
+      const arr=JSON.parse(r.wheelPrizes);
+      if(Array.isArray(arr)&&arr.length>=2){ PRIZES=arr; localStorage.setItem(LS_WHEEL,JSON.stringify(arr)); buildWheel(); }
+    }
+  }catch(e){/* ใช้ค่า cache */}
+}
+
+/* ── วาดวงล้อ SVG ── */
+const R=150, CX=150, CY=150;
+function polar(cx,cy,r,deg){const a=(deg-90)*Math.PI/180;return[cx+r*Math.cos(a),cy+r*Math.sin(a)];}
+function buildWheel(){
+  const n=PRIZES.length, seg=360/n;
+  let svg='';
+  for(let i=0;i<n;i++){
+    const a0=i*seg, a1=(i+1)*seg;
+    const [x0,y0]=polar(CX,CY,R,a0), [x1,y1]=polar(CX,CY,R,a1);
+    const large=seg>180?1:0;
+    svg+=`<path d="M${CX} ${CY} L${x0.toFixed(2)} ${y0.toFixed(2)} A${R} ${R} 0 ${large} 1 ${x1.toFixed(2)} ${y1.toFixed(2)} Z" fill="${SEG_COLORS[i%SEG_COLORS.length]}"/>`;
+    // ป้ายข้อความ วางแนวรัศมี กลาง segment
+    const mid=a0+seg/2;
+    const [tx,ty]=polar(CX,CY,R*0.62,mid);
+    const lines=String(PRIZES[i].label).split('\n');
+    const fs=lines.some(l=>l.length>9)?12:14;
+    let tspans=lines.map((l,li)=>`<tspan x="0" dy="${li===0?0:1.05}em">${esc(l)}</tspan>`).join('');
+    svg+=`<g transform="translate(${tx.toFixed(2)} ${ty.toFixed(2)}) rotate(${mid})"><text text-anchor="middle" font-family="Sarabun,sans-serif" font-weight="800" font-size="${fs}" fill="${TEXT_ON[i%TEXT_ON.length]}" y="${-(lines.length-1)*fs*0.5}">${tspans}</text></g>`;
+    // ไอคอนเล็กตามชนิด
+    const [ix,iy]=polar(CX,CY,R*0.86,mid);
+    const ico=PRIZES[i].type==='win'?'🎁':PRIZES[i].type==='again'?'🔄':'🍀';
+    svg+=`<text x="${ix.toFixed(2)}" y="${(iy+5).toFixed(2)}" text-anchor="middle" font-size="15">${ico}</text>`;
+  }
+  // เส้นคั่น + ขอบ
+  svg+=`<circle cx="${CX}" cy="${CY}" r="${R-1}" fill="none" stroke="#ffffff" stroke-width="2" opacity=".55"/>`;
+  $('wheel').innerHTML=svg;
+}
+function esc(s){return String(s).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));}
+
+/* ── สุ่มแบบถ่วงน้ำหนัก แล้วหมุนให้ลูกศรชี้ segment นั้น ── */
+let rotation=0, spinning=false;
+function pickIndex(){
+  const total=PRIZES.reduce((s,p)=>s+(p.weight||1),0);
+  let r=Math.random()*total;
+  for(let i=0;i<PRIZES.length;i++){ r-=(PRIZES[i].weight||1); if(r<=0) return i; }
+  return PRIZES.length-1;
+}
+function spin(){
+  if(spinning) return;
+  spinning=true;
+  $('spinBtn').disabled=true; $('spinBtn').classList.remove('pulse');
+  $('hint').textContent='กำลังหมุน…';
+  const n=PRIZES.length, seg=360/n;
+  const idx=pickIndex();
+  // มุมที่ทำให้ศูนย์กลาง segment idx ไปอยู่ที่ลูกศร (บนสุด) + สุ่มภายใน segment เล็กน้อย
+  const jitter=(Math.random()-0.5)*seg*0.6;
+  const targetMid=idx*seg+seg/2;
+  const base=rotation - (rotation%360);           // เริ่มจากรอบปัจจุบัน
+  const turns=5+Math.floor(Math.random()*2);       // 5–6 รอบ
+  rotation=base+turns*360+(360-targetMid)-jitter;
+  const w=$('wheel');
+  w.style.transition='transform 5.4s cubic-bezier(.16,.84,.3,1)';
+  w.style.transform=`rotate(${rotation}deg)`;
+  playTicks(5.4);
+  setTimeout(()=>{ spinning=false; showResult(PRIZES[idx]); }, 5500);
+}
+
+/* ── แสดงผล ── */
+function showResult(p){
+  const card=$('modalCard');
+  card.className='modal-card '+(p.type==='win'?'win':p.type==='again'?'again':'lose');
+  if(p.type==='win'){
+    $('mEmo').textContent='🎉'; $('mEmo').className='modal-emo';
+    $('mTitle').textContent='ยินดีด้วย! คุณได้รับรางวัล';
+    $('mPrize').style.display=''; $('mPrize').textContent=p.label.replace(/\n/g,' ');
+    $('mMsg').textContent='รับของรางวัลได้ที่เจ้าหน้าที่บูท carbonMICE 🌱';
+    $('mBtn').textContent='เยี่ยม! หมุนคนต่อไป ▶'; $('mBtn').className='modal-btn mb-mint';
+    winFx();
+  }else if(p.type==='again'){
+    $('mEmo').textContent='🔄'; $('mEmo').className='modal-emo spin';
+    $('mTitle').textContent='โชคดี! ได้หมุนอีกครั้ง';
+    $('mPrize').style.display='none';
+    $('mMsg').textContent='ยังไม่หมดโอกาส — แตะเพื่อหมุนใหม่ได้เลย!';
+    $('mBtn').textContent='หมุนอีกครั้ง 🔄'; $('mBtn').className='modal-btn mb-primary';
+    beep([660,880],.12);
+  }else{
+    $('mEmo').textContent='🥺'; $('mEmo').className='modal-emo';
+    $('mTitle').textContent=p.label.replace(/\n/g,' ');
+    $('mPrize').style.display='none';
+    $('mMsg').textContent='ยังไม่ได้รางวัลรอบนี้ · ครั้งหน้ากลับมาลุ้นใหม่นะ 💚';
+    $('mBtn').textContent='ลองใหม่อีกครั้ง'; $('mBtn').className='modal-btn mb-primary';
+    loseFx(); beep([392,294],.18);
+  }
+  $('modal').classList.add('show');
+}
+function closeModal(){
+  $('modal').classList.remove('show');
+  $('spinBtn').disabled=false; $('spinBtn').classList.add('pulse');
+  $('hint').textContent='';
+}
+
+/* ── confetti (canvas, ไม่พึ่ง lib ภายนอก) ── */
+const cv=$('fx'); let ctx, parts=[], raf=null;
+function fitCanvas(){ const s=$('stage').getBoundingClientRect(); cv.width=s.width; cv.height=s.height; }
+const CONFCOL=['#065DED','#35E5C0','#0FAE8E','#4C8DFF','#FFD166','#fff'];
+function winFx(){
+  fitCanvas(); ctx=cv.getContext('2d'); parts=[];
+  for(let i=0;i<160;i++) parts.push({
+    x:cv.width*(.2+Math.random()*.6), y:cv.height*.35+Math.random()*40,
+    vx:(Math.random()-.5)*9, vy:-6-Math.random()*9,
+    g:.22+Math.random()*.12, s:5+Math.random()*7, rot:Math.random()*6,
+    vr:(Math.random()-.5)*.4, c:CONFCOL[i%CONFCOL.length], life:0, max:90+Math.random()*40
+  });
+  if(!raf) tick();
+  beep([523,659,784,1046],.14);
+}
+function tick(){
+  ctx.clearRect(0,0,cv.width,cv.height);
+  parts.forEach(p=>{ p.vy+=p.g; p.x+=p.vx; p.y+=p.vy; p.rot+=p.vr; p.life++;
+    ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot);
+    ctx.globalAlpha=Math.max(0,1-p.life/p.max); ctx.fillStyle=p.c;
+    ctx.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6); ctx.restore(); });
+  parts=parts.filter(p=>p.life<p.max&&p.y<cv.height+30);
+  if(parts.length){ raf=requestAnimationFrame(tick); } else { ctx.clearRect(0,0,cv.width,cv.height); raf=null; }
+}
+function loseFx(){
+  const st=$('stage');
+  for(let i=0;i<10;i++){ const d=document.createElement('div'); d.className='tearcol'; d.textContent='💧';
+    d.style.left=(8+Math.random()*84)+'%'; d.style.fontSize=(18+Math.random()*16)+'px';
+    d.style.animationDuration=(1.4+Math.random()*1.2)+'s'; st.appendChild(d);
+    setTimeout(()=>d.remove(),2800); }
+}
+
+/* ── เสียง (WebAudio, trigger จากการแตะ) ── */
+let ac=null;
+function actx(){ if(!ac){ try{ac=new (window.AudioContext||window.webkitAudioContext)();}catch(e){} } return ac; }
+function beep(freqs,dur){
+  const a=actx(); if(!a) return;
+  freqs.forEach((f,i)=>{ const o=a.createOscillator(),g=a.createGain();
+    o.type='triangle'; o.frequency.value=f; o.connect(g); g.connect(a.destination);
+    const t=a.currentTime+i*dur; g.gain.setValueAtTime(.0001,t);
+    g.gain.exponentialRampToValueAtTime(.22,t+.02); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    o.start(t); o.stop(t+dur); });
+}
+function playTicks(sec){
+  const a=actx(); if(!a) return;
+  // เสียงติ๊กถี่แล้วห่างออก ตามการชะลอ
+  let t=0, gap=0.06;
+  while(t<sec){ const at=a.currentTime+t; const o=a.createOscillator(),g=a.createGain();
+    o.type='square'; o.frequency.value=1200; o.connect(g); g.connect(a.destination);
+    g.gain.setValueAtTime(.0001,at); g.gain.exponentialRampToValueAtTime(.08,at+.005);
+    g.gain.exponentialRampToValueAtTime(.0001,at+.04); o.start(at); o.stop(at+.05);
+    t+=gap; gap*=1.10; }
+}
+
+window.addEventListener('resize',fitCanvas);
+loadPrizes(); syncPrizes();
+</script>
+</body>
+</html>

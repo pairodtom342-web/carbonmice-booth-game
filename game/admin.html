@@ -93,6 +93,23 @@ label{font-weight:700;font-size:14px;display:block;margin:10px 0 6px}
   </div>
 
   <div class="card">
+    <h2>🎡 วงล้อหมุน — ของรางวัล</h2>
+    <p class="muted">1 บรรทัด = 1 ช่องบนวงล้อ · รูปแบบ: <b>ชื่อรางวัล | ชนิด | น้ำหนัก</b><br>
+      ชนิด: <b>win</b>=ได้รางวัล · <b>again</b>=หมุนอีกครั้ง · <b>lose</b>=ไม่ได้/ครั้งหน้ามาใหม่ · น้ำหนัก=โอกาสออก (มาก=ออกบ่อย)<br>
+      ขึ้นบรรทัดใหม่ในชื่อรางวัลใช้ <b>\n</b> · แนะนำ 6–10 ช่อง</p>
+    <textarea id="wheel-txt" spellcheck="false"
+      style="width:100%;max-width:640px;min-height:190px;border:2px solid var(--line);border-radius:12px;
+             padding:12px 14px;font-family:Inter,monospace;font-size:14px;line-height:1.7;resize:vertical;outline:none"></textarea>
+    <br>
+    <button class="btn btn-ghost" onclick="previewWheel()">👁️ ดูตัวอย่างวงล้อ</button>
+    <button class="btn btn-mint" onclick="saveWheel()">💾 บันทึกของรางวัลขึ้นระบบ</button>
+    <div class="status" id="wheel-status"></div>
+    <div id="wheel-preview" style="margin-top:14px;display:none;text-align:center">
+      <svg id="wheel-svg" viewBox="0 0 300 300" style="width:260px;height:260px"></svg>
+    </div>
+  </div>
+
+  <div class="card">
     <h2>⚙️ ตั้งค่างาน</h2>
     <label>ชื่องาน (แสดงบนหน้าจบเกม)</label>
     <input type="text" id="event-name" placeholder="เช่น TTM+ 2026">
@@ -260,6 +277,66 @@ async function loadConfig(){
   const mode=cfg.qrMode==='web'?'web':'travel';
   document.querySelector('input[name="qr-mode"][value="'+mode+'"]').checked=true;
   $('qr-link').value=cfg.qrLink||'';
+  // wheel prizes
+  let prizes=null;
+  if(cfg.wheelPrizes){try{prizes=JSON.parse(cfg.wheelPrizes);}catch(e){}}
+  if(!prizes){try{prizes=JSON.parse(localStorage.getItem('cmice_wheel_prizes')||'null');}catch(e){}}
+  if(!prizes) prizes=CFG.WHEEL_PRIZES||[];
+  $('wheel-txt').value=prizesToText(prizes);
+}
+
+/* ── wheel prize editor ── */
+function prizesToText(arr){
+  return (arr||[]).map(p=>String(p.label).replace(/\n/g,'\\n')+' | '+(p.type||'win')+' | '+(p.weight||1)).join('\n');
+}
+function parseWheelText(txt){
+  const out=[];
+  txt.split('\n').forEach(line=>{
+    line=line.trim(); if(!line) return;
+    const parts=line.split('|').map(s=>s.trim());
+    const label=(parts[0]||'').replace(/\\n/g,'\n');
+    let type=(parts[1]||'win').toLowerCase();
+    if(!['win','again','lose'].includes(type)) type='win';
+    const weight=Math.max(1,parseInt(parts[2],10)||1);
+    if(label) out.push({label,type,weight});
+  });
+  return out;
+}
+function previewWheel(){
+  const arr=parseWheelText($('wheel-txt').value);
+  const st=$('wheel-status');
+  if(arr.length<2){st.textContent='ต้องมีอย่างน้อย 2 ช่อง';st.className='status err';return;}
+  $('wheel-preview').style.display='block';
+  drawMiniWheel(arr);
+  st.textContent='ตัวอย่าง '+arr.length+' ช่อง ('+arr.filter(p=>p.type==='win').length+' รางวัล)';st.className='status';
+}
+const _SC=["#065DED","#35E5C0","#0FAE8E","#4C8DFF","#1A1A2E","#8FE9D8","#2A6FE0","#12C9A6"];
+const _TC=["#fff","#06382F","#fff","#fff","#fff","#06382F","#fff","#06382F"];
+function _polar(r,deg){const a=(deg-90)*Math.PI/180;return[150+r*Math.cos(a),150+r*Math.sin(a)];}
+function drawMiniWheel(arr){
+  const n=arr.length,seg=360/n;let svg='';
+  for(let i=0;i<n;i++){
+    const a0=i*seg,a1=(i+1)*seg,[x0,y0]=_polar(148,a0),[x1,y1]=_polar(148,a1),lg=seg>180?1:0;
+    svg+=`<path d="M150 150 L${x0.toFixed(1)} ${y0.toFixed(1)} A148 148 0 ${lg} 1 ${x1.toFixed(1)} ${y1.toFixed(1)} Z" fill="${_SC[i%_SC.length]}"/>`;
+    const mid=a0+seg/2,[tx,ty]=_polar(92,mid),lines=String(arr[i].label).split('\n');
+    const fs=lines.some(l=>l.length>9)?11:13;
+    const tsp=lines.map((l,li)=>`<tspan x="0" dy="${li===0?0:'1.05em'}">${l.replace(/[<>&]/g,'')}</tspan>`).join('');
+    svg+=`<g transform="translate(${tx.toFixed(1)} ${ty.toFixed(1)}) rotate(${mid})"><text text-anchor="middle" font-family="Sarabun,sans-serif" font-weight="800" font-size="${fs}" fill="${_TC[i%_TC.length]}" y="${-(lines.length-1)*fs*0.5}">${tsp}</text></g>`;
+  }
+  $('wheel-svg').innerHTML=svg;
+}
+async function saveWheel(){
+  const arr=parseWheelText($('wheel-txt').value);
+  const st=$('wheel-status');
+  if(arr.length<2){st.textContent='ต้องมีอย่างน้อย 2 ช่อง';st.className='status err';return;}
+  if(!arr.some(p=>p.type==='win')){st.textContent='ควรมีรางวัล (win) อย่างน้อย 1 ช่อง';st.className='status err';return;}
+  const json=JSON.stringify(arr);
+  localStorage.setItem('cmice_wheel_prizes',json);
+  try{
+    const r=await api('saveConfig',{wheelPrizes:json});
+    if(!r.ok) throw new Error(r.error||'save failed');
+    st.textContent='✅ บันทึกขึ้นระบบแล้ว — ทุกเครื่องจะได้ของรางวัลชุดใหม่ ('+arr.length+' ช่อง)';st.className='status ok';
+  }catch(e){st.textContent='บันทึกในเครื่องนี้แล้ว แต่ขึ้นเซิร์ฟเวอร์ไม่ได้: '+e.message;st.className='status err';}
 }
 async function saveEventName(){
   const name=$('event-name').value.trim();const st=$('cfg-status');
