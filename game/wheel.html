@@ -32,7 +32,8 @@ body{font-family:'Sarabun','Inter',sans-serif;color:var(--navy);background:var(-
 
 /* ── wheel ── */
 .wheel-area{flex:1;width:100%;display:flex;align-items:center;justify-content:center;min-height:0;padding:1vh 0}
-.wheel-wrap{position:relative;width:min(90vw,58vh);aspect-ratio:1;flex:0 0 auto}
+/* ใช้ % ของเฟรม (ไม่ใช่ vw) เพื่อไม่ให้ล้นเฟรมเมื่อจอกว้างกว่า 9:16 · เว้นขอบให้เงา ring */
+.wheel-wrap{position:relative;width:min(86%,52vh);aspect-ratio:1;flex:0 0 auto}
 .pointer{position:absolute;top:-1.5%;left:50%;transform:translateX(-50%);z-index:6;
   width:0;height:0;border-left:18px solid transparent;border-right:18px solid transparent;
   border-top:30px solid var(--navy);filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
