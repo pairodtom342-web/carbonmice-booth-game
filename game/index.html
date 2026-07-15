@@ -12,15 +12,16 @@
   --slate:#8A94A6; --bg:#F4F7FB; --sky:#EAF2FF; --mist:#E8FFF9; --line:#EAEEF5;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
-html,body{height:100%;overflow:hidden}
+html{height:100%}
 body{
-  font-family:'Sarabun','Inter',sans-serif;color:var(--navy);background:var(--bg);
-  display:flex;justify-content:center;align-items:center;
+  min-height:100%;font-family:'Sarabun','Inter',sans-serif;color:var(--navy);background:var(--bg);
+  overflow-x:hidden;display:flex;justify-content:center;align-items:flex-start;
 }
+/* kiosk แต่เลื่อนได้ (จอเล็กไม่ตกขอบ) */
 #stage{
-  position:relative;width:100vw;height:100vh;max-width:calc(100vh*9/16);
+  position:relative;width:100vw;min-height:100dvh;max-width:calc(100vh*9/16);
   background:radial-gradient(120% 55% at 50% -8%,var(--sky) 0%,var(--bg) 55%);
-  overflow:hidden;display:flex;flex-direction:column;padding:5vh 6% 4vh;
+  display:flex;flex-direction:column;padding:4vh 6% 3.4vh;
 }
 .logo-top{display:flex;justify-content:center;margin-bottom:2.4vh}
 .logo-top img{width:58%;max-width:320px;object-fit:contain}

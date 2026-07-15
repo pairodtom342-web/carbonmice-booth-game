@@ -65,6 +65,7 @@ function doPost(e) {
 function submitScore(body) {
   const name = String(body.name || '').slice(0, 40).trim();
   const org = String(body.org || '').slice(0, 60).trim();
+  const phone = String(body.phone || '').replace(/[^0-9]/g, '').slice(0, 10);
   const score = Math.max(0, Math.min(9999, parseInt(body.score, 10) || 0));
   const ts = body.ts || new Date().toISOString();
   if (!name) return { error: 'no name' };
@@ -72,7 +73,10 @@ function submitScore(body) {
   const lock = LockService.getScriptLock();
   lock.waitLock(10000); // กันเขียนชนกันตอนหลายเครื่องส่งพร้อมกัน
   try {
-    sheet().appendRow([ts, name, org, score]);
+    const sh = sheet();
+    // ใส่หัวคอลัมน์ phone ถ้ายังไม่มี (เก็บเบอร์ผู้ลุ้นรางวัลใหญ่ในคอลัมน์ E, กันเบอร์กลายเป็นตัวเลขวิทย์ด้วย ')
+    if (!sh.getRange(1, 5).getValue()) sh.getRange(1, 5).setValue('phone');
+    sh.appendRow([ts, name, org, score, phone ? "'" + phone : '']);
   } finally {
     lock.releaseLock();
   }
