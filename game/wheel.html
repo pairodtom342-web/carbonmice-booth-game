@@ -172,7 +172,12 @@ async function syncConfig(){
     const r=await apiGet({action:'config'});
     if(r.wheelPrizes){
       const arr=JSON.parse(r.wheelPrizes);
-      if(Array.isArray(arr)&&arr.length>=2){ PRIZES=arr; localStorage.setItem(LS_WHEEL,JSON.stringify(arr)); buildWheel(); }
+      if(Array.isArray(arr)&&arr.length>=2){
+        localStorage.setItem(LS_WHEEL,JSON.stringify(arr));
+        // ห้ามสลับรายการรางวัลกลางรอบหมุน (เคยทำให้วงล้อค้าง: ช่องที่สุ่มได้หายไปจากรายการใหม่)
+        if(spinning||$('modal').classList.contains('show')) pendingPrizes=arr;
+        else{ PRIZES=arr; buildWheel(); }
+      }
     }
     if(r.qrLink!==undefined)  localStorage.setItem('cmice_game_qrlink', r.qrLink||'');
     if(r.eventName!==undefined) localStorage.setItem('cmice_game_event', r.eventName||'');
@@ -251,7 +256,7 @@ function buildWheel(){
 function esc(s){return String(s).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));}
 
 /* ── สุ่มแบบถ่วงน้ำหนัก แล้วหมุนให้ลูกศรชี้ segment นั้น ── */
-let rotation=0, spinning=false;
+let rotation=0, spinning=false, pendingPrizes=null;
 function pickIndex(){
   // ได้รางวัลทุกคน → สุ่มเฉพาะช่อง win (ถ้ามี)
   let idxs=PRIZES.map((p,i)=>i).filter(i=>PRIZES[i].type==='win');
@@ -278,7 +283,8 @@ function spin(){
   w.style.transition='transform 5.4s cubic-bezier(.16,.84,.3,1)';
   w.style.transform=`rotate(${rotation}deg)`;
   playTicks(5.4);
-  setTimeout(()=>{ spinning=false; showResult(PRIZES[idx]); }, 5500);
+  const prize=PRIZES[idx];   // จำรางวัลไว้เลย — ไม่อ่าน PRIZES[idx] ทีหลัง เผื่อรายการเปลี่ยน
+  setTimeout(()=>{ spinning=false; showResult(prize); }, 5500);
 }
 
 /* ── แสดงผล ── */
@@ -319,6 +325,7 @@ function showResult(p){
 }
 function closeModal(){
   $('modal').classList.remove('show');
+  if(pendingPrizes){ PRIZES=pendingPrizes; pendingPrizes=null; buildWheel(); }   // รายการรางวัลที่มาถึงระหว่างหมุน
   $('spinBtn').disabled=false; $('spinBtn').classList.add('pulse');
   $('hint').textContent='';
 }
